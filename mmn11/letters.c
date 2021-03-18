@@ -1,5 +1,5 @@
 #include <stdio.h> /* */
-#include "line_cnt.h"
+#include "text_state.h"
 
 int main()
 {
@@ -8,12 +8,7 @@ int main()
     
     while ( EOF != (ch = getchar()) )
     {
-        do_nothing();
-        if ('\n' == ch)
-        {
-            puts(MESSAGE);
-            ++cnt_line;
-        }
+	        process_char(ch);	           
     }
 
   
