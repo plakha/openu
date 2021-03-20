@@ -8,7 +8,7 @@ int main()
     
     while ( EOF != (ch = getchar()) )
     {
-	        process_char(ch);	           
+	        ProcessChar(ch);	           
     }
 
   
