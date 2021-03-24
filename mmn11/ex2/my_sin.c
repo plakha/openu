@@ -2,12 +2,29 @@
 #include <stdio.h> /* puts() */
 #include <assert.h> /* assertt() */
 
-#define PRECISION (0.000001)
-
-double my_sin(double x);
+#include "my_sin.h"
 
 int main()
 {
+	double angle = 0.0;
+	
+	double my_sin_res = 0.0;
+	double sin_res = 0.0;
+	
+	printf("This program receives a angle in radians and calculates sinus up to the precision of %f \n", PRECISION);
+	puts("Please enter an angle value in radians");
+	
+	scanf("%lf", &angle);
+	
+	printf("Received input of %f\n", angle);
+	puts("*************************\nCalculating...");
+	
+	my_sin_res = my_sin(angle);
+	sin_res = sin(angle);
+	
+	printf("my_sin() result is %f,\nstandard sin() result is %f", my_sin_res, sin_res);
+
+	
 	return 0;
 }
 
