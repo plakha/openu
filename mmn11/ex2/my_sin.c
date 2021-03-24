@@ -4,6 +4,9 @@
 
 #include "my_sin.h"
 
+#define MIN_INPUT (-25.0)
+#define MAX_INPUT (25.0)
+
 int main()
 {
 	double angle = 0.0;
@@ -11,18 +14,29 @@ int main()
 	double my_sin_res = 0.0;
 	double sin_res = 0.0;
 	
+	int should_ask_for_input = 1;
+	
 	printf("This program receives a angle in radians and calculates sinus up to the precision of %f \n", PRECISION);
-	puts("Please enter an angle value in radians");
 	
-	scanf("%lf", &angle);
+	while (should_ask_for_input)
+	{
+		printf("Please enter an angle value in radians between %f and %f inclusively \n", MIN_INPUT, MAX_INPUT);
+		scanf("%lf", &angle);
+		printf("Received input of %f \n", angle);	
+		
+		if (angle <= MAX_INPUT && angle >= MIN_INPUT)
+		{
+			should_ask_for_input = 0;
+		}
+	}
 	
-	printf("Received input of %f\n", angle);
-	puts("*************************\nCalculating...");
+	
+	puts("*************************\nCalculating...\n");
 	
 	my_sin_res = my_sin(angle);
 	sin_res = sin(angle);
 	
-	printf("my_sin() result is %f,\nstandard sin() result is %f", my_sin_res, sin_res);
+	printf("my_sin() result is %f,\nstandard sin() result is %f\n", my_sin_res, sin_res);
 
 	
 	return 0;
@@ -37,7 +51,7 @@ double my_sin(double x)
 	
 	const double x_sqr = x * x;
 	double next_memb = x; /* the first member x^1/0! */
-	unsigned int fac = 1; /* used to calculate the "trailing" factorial*/
+	size_t fac = 1; /* used to calculate the "trailing" factorial*/
 	
 	while ((next_memb > PRECISION) || (-next_memb > PRECISION))
 	{
