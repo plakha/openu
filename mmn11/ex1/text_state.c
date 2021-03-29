@@ -27,7 +27,7 @@ static enum state g_current_text_state = start_sentence_state;
 
 void ProcessChar(int ch)
 {
-	printf("state enum %d, line %d\n", g_current_text_state, __LINE__);
+/*	printf("state enum %d, line %d\n", g_current_text_state, __LINE__);*/
 	if (!isdigit(ch))
 	{
 		(print_func_arr[g_current_text_state])(ch);		
@@ -100,19 +100,19 @@ static enum state NextStatus(enum state current_text_state, int ch)
 
 static void PrintDefault(int ch)
 {
-	puts("print_default");
+/*	puts("print_default");*/
 	putchar(tolower(ch));
 }
 
 static void PrintStartSentence(int ch)
 {
-	puts("print_start_sentence");
+/*	puts("print_start_sentence");*/
 	putchar(toupper(ch));
 }
 
 static void PrintQuotation(int ch)
 {
-	puts("print_quotation");
+/*	puts("print_quotation");*/
 	putchar(toupper(ch));	
 }
 static void PrintIllegal(int ch)
@@ -120,7 +120,7 @@ static void PrintIllegal(int ch)
 	fprintf(stderr, "print_illegal(%c)\n", ch);
 }
 
-/*********************************************************/
+
 
 
 static int IsDot(int ch)
@@ -136,8 +136,8 @@ static int IsQuot(int ch)
 /*
 * remember TO REMOVE
 */
-void do_nothing()
-{
-    puts("Nothing done.");
-}
+/*void do_nothing()*/
+/*{*/
+/*    puts("Nothing done.");*/
+/*}*/
 

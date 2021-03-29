@@ -4,7 +4,7 @@
 int main()
 {
     int ch = '\0';
-    size_t cnt_line = 0;
+/*    size_t cnt_line = 0;*/
     
     while ( EOF != (ch = getchar()) )
     {
@@ -13,7 +13,7 @@ int main()
 
   
    
-    printf("A count: %ld\n", cnt_line);
+/*    printf("A count: %ld\n", cnt_line);*/
     
     return 0;
 }
