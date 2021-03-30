@@ -9,13 +9,14 @@
 /*the state machine helps print a char */
 /*according to the rules in maman11, exercise 1.*/
 /*number is not part of the state machine,*/
-/*because they shouldn't be printed at all*/
+/*because they shouldn't be printed at all,*/
+/*this is a matter of implementation that may be reconsidered*/
 enum state {
-default_state = 0, 
-start_sentence_state, 
-quotation_state, 
-illegal_state
-};
+	default_state = 0, 
+	start_sentence_state, 
+	quotation_state, 
+	illegal_state
+	};
 
 /*helps define array of print functions for state machine*/
 typedef void (*print_func_t)(int);
@@ -37,11 +38,11 @@ static int IsQuot(int ch);
 
 /*array of print functions by state*/
 static const print_func_t print_func_arr[] = {
-&PrintDefault, 
-&PrintStartSentence, 
-&PrintQuotation, 
-&PrintIllegal
-};
+	&PrintDefault, 
+	&PrintStartSentence, 
+	&PrintQuotation, 
+	&PrintIllegal
+	};
 
 static enum state g_current_text_state = start_sentence_state; 
 
@@ -111,7 +112,10 @@ static enum state NextStatus(enum state current_text_state, int ch)
 			break;
 			
 		case illegal_state:
+			fprintf(stderr, "state %d inside case illegal_state, line %d\n", 
+				g_current_text_state, __LINE__);
 			assert(FALSE);
+			
 			break;
 	}
 
@@ -137,7 +141,8 @@ static void PrintQuotation(int ch)
 
 static void PrintIllegal(int ch)
 {
-	fprintf(stderr, "PrintIllegal(%c), line %d\n", ch, __LINE__);
+	fprintf(stderr, "state %d, inside PrintIllegal(%c), line %d\n", 
+		g_current_text_state, ch, __LINE__);
 	assert(FALSE);
 }
 
