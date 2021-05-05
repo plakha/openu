@@ -1,27 +1,33 @@
 #include <stdlib.h> /* size_t */
 #include <assert.h> /* assert() */
+#include <string.h> /* memcpy() */
 
 #include "buffer.h"
 
+#ifndef GROWTH_FACTOR
+#define GROWTH_FACTOR (2)
+#endif
+
+
+enum {SUCCESS, FAIL};
+enum {FALSE};
+
 struct buffer 
 {
-	void *arr;
+	char *arr;
 	size_t n_memb;
-	size_t memb_size;
 	size_t capacity; /* num of member */
 };
 
 
-buffer_t *BufCreate(size_t memb_size, size_t initial_capacity)
+buffer_t *BufCreate()
 {
 	buffer_t *buf = NULL;
 	
-	assert(memb_size);
-		
 	buf = (buffer_t *)(malloc(sizeof(*buf)));
 	if (!buf) {return NULL;}
 	
-	buf->arr = calloc(initial_capacity, memb_size);
+	buf->arr = calloc(DEFAULT_BUF_CAPACITY, sizeof(*(buf->arr)));
 	if (!buf->arr)
 	{
 		free(buf);
@@ -31,19 +37,17 @@ buffer_t *BufCreate(size_t memb_size, size_t initial_capacity)
 	}
 	
 	buf->n_memb = 0;
-	buf->memb_size = memb_size;
-	buf->capacity = 0 == initial_capacity ? DEFAULT_BUF_CAPACITY : initial_capacity;
+	buf->capacity = DEFAULT_BUF_CAPACITY;
 	
 	return buf;
 }
-
 
 void BufDestroy(buffer_t *buf)
 {
 	assert(buf);
 	
 	free(buf->arr);
-	buf->buf = NULL;
+	buf->arr = NULL;
 	
 	free(buf);
 	buf = NULL;	
@@ -56,9 +60,38 @@ size_t BufGetCapacity(const buffer_t *buf)
 	return buf->capacity;
 }
 
-void *BufGetItem(const buffer_t *buf, size_t index)
+char BufGetItem(const buffer_t *buf, size_t index)
 {
 	assert(buf);
+	assert(index < buf->n_memb);
 	
-	return (buf->arr) + index * (buf->memb_size)m
+	return (buf->arr)[index];
 }
+
+int BufPush(buffer_t *buf, char item)
+{
+	char *hold_buf = buf->arr;
+	if (buf->n_memb >= buf->capacity)
+	{
+		if (NULL != (buf->arr = realloc(buf->arr, GROWTH_FACTOR * buf->capacity * sizeof(*(buf->arr)))))
+		{
+			buf->capacity *= GROWTH_FACTOR;
+		}
+		else 
+		{
+			buf->arr = hold_buf;
+			
+			return FAIL;
+		}
+	}
+	
+/*	*(buf->arr + buf->n_memb) = item;*/
+/*	memcpy((char *)(buf->arr) + buf->n_memb, &item, buf->memb_size);*/
+	(buf->arr)[buf->n_memb] = item;
+	++(buf->n_memb);
+		
+	return SUCCESS;
+}
+
+
+
