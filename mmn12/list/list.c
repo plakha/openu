@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h> /*TODO remove */
 
 #include "list.h"
 
@@ -58,11 +59,14 @@ int ListPushData(list_t *list, char data)
 	
 	if (ListIsEmpty(list))
 	{
+		printf("FIRST ITEM %c", data);
 		new_node->data = data;
 		new_node->next = list->last_stub;
+		list->head = new_node;
 	}
 	else
 	{
+		printf("NEXT ITEM %c", data);
 		list->last_stub->data = data;
 		list->last_stub->next = new_node;
 		list->last_stub = new_node;
@@ -89,19 +93,18 @@ node_t *ListNodeGetFirst(const list_t *list)
 
 
 
-node_t *ListNodeGetNext(const list_t *list, const node_t *node)
+node_t *ListNodeGetNext(const node_t *node)
 {
-	assert(!ListNodeIsLast(list, node));
+	assert(!ListNodeIsLast(node)); /* not last_stub */
 	
 	return node->next;
 }
 
-int ListNodeIsLast(const list_t *list, const node_t *node)
+int ListNodeIsLast(const node_t *node)
 {
-	assert(list);
 	assert(node);
 	
-	return node->next == list->last_stub;
+	return NULL == node->next;
 }
 
 char ListNodeGetData(const node_t *node)
@@ -111,6 +114,58 @@ char ListNodeGetData(const node_t *node)
 	return node->data;
 }
 
+static void NodesDestroy(node_t *head)
+{
+	if (!head)
+	{
+		return;
+	}
+	
+	NodesDestroy(head->next);
+	head->next = NULL;
+	
+	free(head);
+	head = NULL;	
+}
+
+void ListDestroy(list_t *list)
+{
+
+	assert(list);
+	
+	NodesDestroy(list->head);
+	list->head = NULL;
+	list->last_stub = NULL;
+	
+	free(list);
+	list = NULL;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
 
 
 

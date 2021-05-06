@@ -12,12 +12,14 @@ int ListIsEmpty(const list_t *list);
 
 node_t *ListNodeGetFirst(const list_t *list);
 
-node_t *ListNodeGetNext(const list_t *list, const node_t *node);
+node_t *ListNodeGetNext(const node_t *node);
 
-int ListNodeIsLast(const list_t *list, const node_t *node);
+int ListNodeIsLast(const node_t *node);
 
 char ListNodeGetData(const node_t *node);
 
 int ListPushData(list_t *list, char data);
+
+void ListDestroy(list_t *list);
 
 #endif /* LIST_H */
