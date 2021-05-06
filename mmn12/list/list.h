@@ -5,10 +5,12 @@
 typedef struct list list_t;
 typedef struct node node_t;
 
+/* returns pointer to list that can store chars*/
 list_t *ListCreate();
 
 
 int ListIsEmpty(const list_t *list);
+
 
 node_t *ListNodeGetFirst(const list_t *list);
 

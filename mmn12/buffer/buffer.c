@@ -85,12 +85,17 @@ int BufPush(buffer_t *buf, char item)
 		}
 	}
 	
-/*	*(buf->arr + buf->n_memb) = item;*/
-/*	memcpy((char *)(buf->arr) + buf->n_memb, &item, buf->memb_size);*/
 	(buf->arr)[buf->n_memb] = item;
 	++(buf->n_memb);
 		
 	return SUCCESS;
+}
+
+size_t BufSize(buffer_t *buf)
+{
+	assert(buf);
+	
+	return buf->n_memb;
 }
 
 

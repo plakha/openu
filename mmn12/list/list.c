@@ -1,6 +1,5 @@
-#include <assert.h>
-#include <stdlib.h>
-#include <stdio.h> /*TODO remove */
+#include <assert.h> /* assert() */
+#include <stdlib.h> /* size_t */
 
 #include "list.h"
 
@@ -15,12 +14,12 @@ struct node
 struct list
 {
 	node_t *head;
-	node_t *last_stub;
+	node_t *last_stub; /* allows to push in O(1) */
 };
 
 static node_t *NodeCreate()
 {
-	return calloc(1, sizeof(node_t));
+	return calloc(1, sizeof(node_t)); /* next is set to NULL, thanks to calloc */
 }
 
 list_t *ListCreate()
@@ -59,14 +58,12 @@ int ListPushData(list_t *list, char data)
 	
 	if (ListIsEmpty(list))
 	{
-		printf("FIRST ITEM %c", data);
 		new_node->data = data;
 		new_node->next = list->last_stub;
 		list->head = new_node;
 	}
 	else
 	{
-		printf("NEXT ITEM %c", data);
 		list->last_stub->data = data;
 		list->last_stub->next = new_node;
 		list->last_stub = new_node;

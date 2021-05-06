@@ -5,9 +5,20 @@
 #include "myText.h"
 
 enum {SUCCESS, FAILURE};
+enum {FALSE};
 
 int main()
 {
+	int ds_kind = -1;
+	void *ds = NULL;
+	
+	scanf("%d", &ds_kind);
+	
+	ds = readText(ds_kind);
+	
+	printText(ds, ds_kind);
+	
+
 	return 0;
 
 }
@@ -72,16 +83,34 @@ void *readText(enum data_structure ds_kind)
 
 void printText(void *ds, enum data_structure ds_kind)
 {
-	char ch = '\0';
-	size_t
+	node_t *node = NULL;
+	size_t index = 0;
 	
 	switch (ds_kind)
 	{
 		case buffer:
+			for (index = 0; BufSize(ds) > index; ++index)
+			{
+				if ((0 == index % LINE_LEN) && (0 != index)) {puts("");}
+				
+				putchar(BufGetItem(ds, index));			
+			}
 			
 			break;
 	
 		case list:
+			if (ListIsEmpty(ds)) {break;}
+			node = ListNodeGetFirst(ds);
+			
+			do
+			{
+				if ((0 == index % LINE_LEN) && (0 != index)) {puts("");}
+				
+				putchar(ListNodeGetData(node));
+				node = ListNodeGetNext(node);
+				++index;
+			}
+			while (!ListNodeIsLast(node));
 			
 			break;
 		
@@ -90,6 +119,7 @@ void printText(void *ds, enum data_structure ds_kind)
 			
 			break;	
 	}
+
 }
 
 
