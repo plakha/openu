@@ -1,7 +1,7 @@
 #include <string.h> /* strchr() */
 #include <assert.h> /* assert() */
 #include <stdlib.h> /* size_t */
-
+#include <stdio.h> /* printf() */
 #include "myText.h"
 
 enum {SUCCESS, FAILURE};
@@ -12,13 +12,43 @@ int main()
 	int ds_kind = -1;
 	void *ds = NULL;
 	
-	scanf("%d", &ds_kind);
+	printf("The program receives standard input and prints it back by length of %d\n", LINE_LEN);
+	puts("Please enter 0 to use buffer for storage, or 1 - to use linked list");
+	
+	while (ds_kind < buffer || list < ds_kind)
+	{	
+		scanf("%d", &ds_kind);
+	}
+	
+	puts("Please enter the text\n*****************");
 	
 	ds = readText(ds_kind);
 	
+	puts("The text has been received\n***************");
+	
 	printText(ds, ds_kind);
 	
+/*	Clean the memory*/
 
+	switch (ds_kind)
+	{
+		case buffer:
+			BufDestroy(ds);
+			
+			break;
+		
+		case list:
+			ListDestroy(ds);
+			
+			break;
+			
+		default:
+			assert(FALSE);
+			
+			break;
+	}
+	ds = NULL;
+	
 	return 0;
 
 }
@@ -39,6 +69,11 @@ void *readText(enum data_structure ds_kind)
 		
 		case list:
 			ret_ds = ListCreate();
+			
+			break;
+			
+		default:
+			assert(FALSE);
 			
 			break;
 	}
