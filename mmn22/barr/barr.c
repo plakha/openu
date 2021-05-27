@@ -4,8 +4,6 @@
 
 typedef unsigned char byte;
 
-enum {FALSE};
-
 struct barr
 {
 	byte arr[BARR_N_BYTES];	
