@@ -1,11 +1,22 @@
-test_assembler: test_assembler.o assembler.o
-	gcc -ansi -pedantic -Wall -o test_assembler test_assembler.o assembler.o
+CC = gcc
+CCFLAGS = -ansi -pedantic -Wall
+
+
+#if building in release(all) after having built in debug, with no changes in source
+#run make clean first
+all: global.out
+
+#if building in debug after having built in release (all), with no changes in source
+#run make clean first
+debug:  CCFLAGS += -DDEBUG -g3 -O0
+debug: global.out
+
+assembler: assembler.o
+	$(CC) $(CCFLAGS) -o assembler assembler.o
 		
-test_assembler.o: assembler.h test_assembler.c
-	gcc -ansi -pedantic -Wall -c test_assembler.c
-		
-assembler.o: assembler.h assembler.c
-	gcc -ansi -pedantic -Wall -c assembler.c
+
+assembler.o: assembler.c assembler.h
+	$(CC) $(CCFLAGS) -c assembler.c
 		
 clean:
-	rm *.o test_assembler
+	rm *.o assembler
