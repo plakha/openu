@@ -17,6 +17,6 @@ TODO
 
 */
 
-void ParseStatement(char statement[]);
+void ParseStatement(char *statement[]);
 
 #endif /* ASSEMBLER_H */
