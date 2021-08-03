@@ -23,6 +23,6 @@ struct word
 }
 word_t;
 
-typedef char[MAX_LINE_LEN] cmd_arg_t;
-typedef cmd_arg[(MAX_LINE_LEN / 2 + 1)] cmd_args_t;
+typedef char[MAX_LINE_LEN] line_arg_t;
+typedef cmd_arg[(MAX_LINE_LEN / 2 + 1)] line_args_t;
 #endif /* MMN14_TYPES */
