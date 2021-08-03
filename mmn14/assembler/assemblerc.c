@@ -5,9 +5,6 @@
 
 #define MAX_FILENAME_LEN (255)
 
-#ifndef MAX_LINE_LEN
-#define MAX_LINE_LEN (81)
-#endif
 
 enum status {OK = 0, ERROR};
 
