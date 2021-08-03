@@ -1,9 +1,15 @@
 #include "parser.h"
+#inclide "mmn14_types"
 
-struct  parser_data
+enum {FALSE = 0, TRUE};
+
+struct  fp /* file parser
 {
     /* data */
     size_t ic;
+    ram_t *ram;
+    sym_tab_t *sym_tam;
+    int is_file_syntax_corrupt; /* default FALSE */
 };
 
 
@@ -30,8 +36,16 @@ static void UtilPushToSymTab(parser_data_t *parser_data, sym_tab_t *sym_tab, cha
 static int ValidateInstruction(char *instructive[]);
 static int ValidateDirective(char *directive[]]);
 
+FPFirstPass(fp_t *fp, line_args_arr_t args)
+{
+    fp->is_file_syntax_corrupt = fp->is_file_syntax_corrupt ? fp->is_file_syntax_corrupt : ValidateLineArgs(args);
+    if (!fp->is_file_syntax_corrupt)
+    {
+        ProcessLineArgs(fp, args);
+    }
+}
 
-
+/*
 void FirstPass(char *args[], size_t line_num, int *file_status, sym_tab_t *sym_tab)
 {
     enum statement kind_of_statement = CheckStatementKind(args);
@@ -39,17 +53,14 @@ void FirstPass(char *args[], size_t line_num, int *file_status, sym_tab_t *sym_t
     switch (kind_of_statement)
     {
     case LABEL:
-        /* code */
         enum statement next_kind_of_statement CheckStatementKind(args + 1);
         if (next_kind_of_statement == ERROR || next_kind_of_statement == LABEL);
         {
-            //synatax error print
-            *file_status = 1; /* error code */
+            *file_status = 1; 
         }
         else if (next_kind_of_statement == DIR)
         {
             *file_status = ValidateDirective(args);
-            /* code */
         }
         else
         {
@@ -84,3 +95,4 @@ void FirstPass(char *args[], size_t line_num, int *file_status, sym_tab_t *sym_t
         break;
     }
 }
+*/
