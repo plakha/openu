@@ -24,5 +24,5 @@ struct word
 word_t;
 
 typedef char[MAX_LINE_LEN] line_arg_t;
-typedef cmd_arg[(MAX_LINE_LEN / 2 + 1)] line_args_t;
+typedef cmd_arg[(MAX_LINE_LEN / 2 + 1)] line_args_arr_t;
 #endif /* MMN14_TYPES */
