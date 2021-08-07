@@ -1,7 +1,10 @@
 #include <stdio.h> /* fprintf() */
 #include <stdlib.h> 
+
 #include "mmn14_types.h" /* */
 #include "file.h"
+#include "ram.h"
+#include "sym_tab.h"
 
 #define MAX_FILENAME_LEN (255)
 
@@ -9,8 +12,8 @@
 enum status {OK = 0, ERROR};
 
 
-static int CheckUsage(int num_filepaths, const char const *filepaths);
-static int CheckFileName(char filename);
+static int CheckUsage(int num_filepaths, const char *filepaths[]);
+static int CheckFileName(const char *filename);
 
 static void GetFileName(const char *filepaths, char *filename_buf);
 
@@ -22,7 +25,7 @@ int main(int argc, char const *argv[])
     int status = OK;
     int i = 0;
 
-    if(OK != (status = CheckUsage(num_filepaths, filepaths)))
+    if (OK != (status = CheckUsage(num_filepaths, filepaths)))
     {
         return status;
     }
@@ -33,8 +36,8 @@ int main(int argc, char const *argv[])
         char filename[MAX_FILENAME_LEN] = {};
         int line_status = 0;
         FILE *pfile = NULL;
-        RAM *ram = NULL;
-        SymTab *sym_tab = NULL;
+        ram_t *ram = NULL;
+        sym_tab_t *sym_tab = NULL;
 
         if (file_status != OK)
         {
@@ -93,7 +96,7 @@ static int CheckUsage(int num_filepaths, const char const *filepaths[])
 
 /* ends with .as; print error as needed*/
 /* maybe inside "" or ''  */
-static int CheckFileName(char filename)
+static int CheckFileName(const char *filename)
 {
     return OK;
 }

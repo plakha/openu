@@ -23,7 +23,7 @@ struct word
 }
 word_t;
 
-typedef char line_arg_t[MAX_LINE_LEN];
-typedef line_args_arr_t[(MAX_LINE_LEN / 2 + 1)];
+typedef char line_arg_t[MAX_LINE_LEN]; /* string of MAX_LINE_LEN length */
+typedef line_arg_t line_args_arr_t[(MAX_LINE_LEN / 2 + 1)]; /* array of (1 + MAX_LINE_LEN/2) line_arg_t */
 
 #endif /* MMN14_TYPES */
