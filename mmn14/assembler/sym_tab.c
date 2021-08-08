@@ -72,7 +72,7 @@ void SymTabPushStringData(sym_tab_t *sym_tab, symbol_t *symbol, const char *stri
 
 void SymTabMemCpy(sym_tab_t *sym_tab, symbol_t *symbol, void *to)
 {
-    return
+    return;
 }
 
 /*

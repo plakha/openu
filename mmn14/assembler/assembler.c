@@ -44,11 +44,6 @@ int main(int argc, char const *argv[])
             continue;
         }
 
-        file_status = CheckFileExists(filepaths[i]);
-        if (file_status != OK)
-        {
-            continue;
-        }
 
         GetFileName(filepaths[i], filename);
 
@@ -62,11 +57,11 @@ int main(int argc, char const *argv[])
             char line_buf[MAX_LINE_LEN] = {};
             if (LINE_TOO_LONG == line_status)
             {
-                line_status = GetLine(filepaths[i], buf, MAX_LINE_LEN, " \v\n", ' '));
+                line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN, " \v\n", ' ');
                 continue;
             }    
 
-            line_status = GetLine(filepaths[i], buf, MAX_LINE_LEN, " \v\n", ' '));
+            line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN, " \v\n", ' ');
             /* Get array of strings */
             /* send to 1st pass */
        
