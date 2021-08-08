@@ -18,7 +18,21 @@ struct  parser /* file parser */
     int is_file_syntax_corrupt;  /* default FALSE */
 };
 
+void ValidateLineArgs(parser_t *parser, line_args_arr_t args)
+{
+    int is_line_ok = TRUE;
+    /* check */
+    if (!parser->is_file_syntax_corrupt)
+    {
+        parser->is_file_syntax_corrupt = is_line_ok;
+    }
 
+}
+
+void ProcessLineArgs(parser_t *parser, line_args_arr_t args)
+{
+
+}
 
 static int IsRegistry(const char *arg)
 {
@@ -83,12 +97,12 @@ int IsCorrectJLABEL(const char **line, char *er_buf)
 
 
 
-void FPFirstPass(parser_t *parser, line_args_arr_t args)
+void ParserFirstPass(parser_t *parser, line_args_arr_t args)
 {
-    parser->is_file_syntax_corrupt = parser->is_file_syntax_corrupt ? parser->is_file_syntax_corrupt : ValidateLineArgs(args);
+    ValidateLineArgs(parser, args);
     if (!parser->is_file_syntax_corrupt)
     {
-        ProcessLineArgs(fp, args);
+        ProcessLineArgs(parser, args);
     }
 }
 
