@@ -1,10 +1,10 @@
 CC = gcc
-CCFLAGS = -ansi -pedantic -Wall
+CCFLAGS = -pedantic -Wall
 SOURCES=assembler.c dll.c dvec.c file.c parser.c ram.c sym_tab.c
 HEADERS=$(SOURCES:.c=.h) 
 HEADERS += mmn14_types.h
 OBJECTS=$(SOURCES:.c=.o)
-#OBJDIR=obj
+OBJDIR=obj
 EXECUTABLE=assembler
 
 
@@ -20,8 +20,8 @@ debug: $(EXECUTABLE)
 $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CCFLAGS) -o $@ $^
 		
-%.o: %.c $(HEADERS)
-	$(CC) $(CCFLAGS) -c ../%.c
+$(OBJDIR)/%.o: %.c $(HEADERS)
+	$(CC) $(CCFLAGS) -ansi -c %.c
 
 .PHONY: clean
 		

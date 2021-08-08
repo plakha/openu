@@ -77,7 +77,7 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
-static int CheckUsage(int num_filepaths, const char const *filepaths[])
+static int CheckUsage(int num_filepaths, const char *filepaths[])
 {
     int status = (num_filepaths > 0) ? OK : ERROR;
 
