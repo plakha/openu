@@ -5,6 +5,7 @@
 #include "file.h"
 #include "ram.h"
 #include "sym_tab.h"
+#include "parser.h"
 
 #define MAX_FILENAME_LEN (255)
 
@@ -38,6 +39,10 @@ int main(int argc, char const *argv[])
         FILE *pfile = NULL;
         ram_t *ram = NULL;
         sym_tab_t *sym_tab = NULL;
+        parser_t *parser = NULL;
+        size_t line_number = 0;
+        line_args_arr_t args_arr = {{'\0'}};
+
 
         if (file_status != OK)
         {
@@ -51,10 +56,12 @@ int main(int argc, char const *argv[])
         if (NULL == pfile)
         {
             fprintf(stderr, "The file %s doesn't exist", filepaths[i]);
+            continue;
         }
 
-        do{
-            char line_buf[MAX_LINE_LEN] = {};
+        do
+        {
+            char line_buf[MAX_LINE_LEN] = {'\0'};
             if (LINE_TOO_LONG == line_status)
             {
                 line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN, " \v\n", ' ');
@@ -62,7 +69,9 @@ int main(int argc, char const *argv[])
             }    
 
             line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN, " \v\n", ' ');
-            /* Get array of strings */
+            /* Create from line an array of strings */
+
+            ParserFirstPass(parser, args_arr, line_number);
             /* send to 1st pass */
        
         }
