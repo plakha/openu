@@ -20,8 +20,8 @@ debug: $(EXECUTABLE)
 $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CCFLAGS) -o $@ $^
 		
-$(OBJDIR)/%.o: %.c $(HEADERS)
-	$(CC) $(CCFLAGS) -ansi -c %.c
+%.o: %.c $(HEADERS)
+	$(CC) $(CCFLAGS) -ansi -c $<
 
 .PHONY: clean
 		

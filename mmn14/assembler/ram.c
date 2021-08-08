@@ -6,6 +6,7 @@
 struct ram
 {
     /* data */
+
 };
 
 

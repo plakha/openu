@@ -27,4 +27,4 @@ int SymTabSetEntryRelativeAddress(sym_tab_t *sym_tab, symbol_t *symbol, void *ze
 
 void SymTabDestroy(sym_tab_t *sym_tab);
 
-#endif /* SYM_TAB */ 
+#endif /* SYM_TAB */

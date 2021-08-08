@@ -3,7 +3,7 @@
 
 #include "file.h"
 
-//enum get_line_status {GOT_LINE, END_OF_FILE, LINE_TOO_LONG};
+/* enum get_line_status {GOT_LINE, END_OF_FILE, LINE_TOO_LONG}; */
 /* TODO don't cut after `"` */
 enum get_line_status FileGetLine(FILE *file, char *buf, size_t lim, const char ignore_chars[], int delim)
 {
