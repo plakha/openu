@@ -10,7 +10,7 @@
 #define MAX_FILENAME_LEN (255)
 
 
-enum status {OK = 0, ERROR};
+enum status {OK = 0, ERROR_STATUS};
 
 
 static int CheckUsage(int num_filepaths, const char *filepaths[]);
@@ -34,7 +34,7 @@ int main(int argc, char const *argv[])
     for (i = 0; i < num_filepaths; ++i)
     {
         int file_status = CheckFileName(filepaths[i]);
-        char filename[MAX_FILENAME_LEN] = {};
+        char filename[MAX_FILENAME_LEN] = {'\0'};
         int line_status = 0;
         FILE *pfile = NULL;
         ram_t *ram = NULL;
@@ -88,7 +88,7 @@ int main(int argc, char const *argv[])
 
 static int CheckUsage(int num_filepaths, const char *filepaths[])
 {
-    int status = (num_filepaths > 0) ? OK : ERROR;
+    int status = (num_filepaths > 0) ? OK : ERROR_STATUS;
 
     if (OK != status)
     {
