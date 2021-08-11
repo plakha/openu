@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <string.h> /* strchr() */
+#include <ctype.h> /* isspace() */
 
 #include "file.h"
 #include "mmn14_types.h"
+
 /*
 typedef char line_arg_t[MAX_LINE_LEN];
 */
@@ -65,7 +67,53 @@ enum get_line_status FileGetLine(FILE *file, char *buf, size_t lim, const char i
 }
 
 
-line_arg_t *FileLineToArgs(char *line)
+
+dvec_t *FileLineToArgs(const char line[])
 {
+    static const size_t N_ARGS_EXPECTED = 6;
+    char *left = (char *)line;
+    char *right = (char *)line;
+    char buf[MAX_LINE_LEN] = {'\0'};
+    
+    dvec_t *args = DVECCreate(sizeof(buf), N_ARGS_EXPECTED);
+    if (NULL == args)
+    {
+        fprintf(stderr, "Cannot allocate memory while running line %d in %s/n", __LINE__, __FILE__);
+
+        return NULL;
+    }
+    
+    while (*left != '\0')
+    {
+        while (isspace(*left))
+        {
+            ++left;
+        }
+        
+        if (',' == *left)
+        {
+            puts(",");
+            DVECPushBack(args, strcpy(buf, ","));
+            ++left;
+            
+            continue;
+        }
+        
+        right = left;
+        
+        while (!isspace(*right) && ',' != *right && '\0' != *right)
+        {
+            ++right;
+        }
+        
+        buf[right - left] = '\0';
+        
+        DVECPushBack(args, strncpy(buf, left, right - left));
+        
+        left = right;
+        
+    }
+    
+    return args;
     
 }

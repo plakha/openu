@@ -24,7 +24,7 @@ struct  parser /* file parser */
 
 
 
-void ProcessLineArgs(parser_t *parser, line_args_arr_t args)
+void ProcessLineArgs(parser_t *parser, dvec_t *args)
 {
 
 }
@@ -60,6 +60,11 @@ static int StringToRegistry(const char *str)
     return reg;
 }
 
+static int IsStringRegistry(const char *str)
+{
+    return StringToRegistry(str) != -1;
+}
+
 
 
 
@@ -68,29 +73,37 @@ static void UtilPushToSymTab(parser_t *parser_data, sym_tab_t *sym_tab, char *st
 
 
 /* add $1, $4, $1 */
-static int IsValidateR3(const line_args_arr_t arg_arr, size_t line_num)
+static int IsValidateR3(const dvec_t *arg_arr, size_t line_num)
 {
-    
+    /*
+        validate 6 args 
+        Validate arg0 is a legal operator (add, sub, etc) - redundant (assert only)
+        validate arg1 legal registry
+        validate arg3 is ","
+        validate arg4 legal registry
+        validate arg5  is ","
+        validate arg6 legal registry
+    */
     return 1;
 }
 
-static int IsValidateR2(const line_args_arr_t arg_arr, size_t line_num)
-{
-    return 1;
-}
-
-
-static int IsValidateJ0(const line_args_arr_t arg_arr, size_t line_num)
-{
-    return 1;
-}
-
-static int IsValidateJ1(const line_args_arr_t arg_arr, size_t line_num)
+static int IsValidateR2(const dvec_t *arg_arr, size_t line_num)
 {
     return 1;
 }
 
-static int IsValidateICond(const line_args_arr_t arg_arr, size_t line_num)
+
+static int IsValidateJ0(const dvec_t *arg_arr, size_t line_num)
+{
+    return 1;
+}
+
+static int IsValidateJ1(const dvec_t *arg_arr, size_t line_num)
+{
+    return 1;
+}
+
+static int IsValidateICond(const dvec_t *arg_arr, size_t line_num)
 {
     return 1;
 }
@@ -138,48 +151,50 @@ static int IsStringLabel(char *str)
 
 }
 
-static enum statement_type WhatStatement(line_args_arr_t args)
+static enum statement_type WhatStatement(dvec_t *args)
 {
-    if (!strcmp(args[0], "add") || !strcmp(args[0], "sub") || !strcmp(args[0], "and") || !strcmp(args[0], "or") || !strcmp(args[0], "nor"))
+    char *args0 = (char *) DVECGetItemAddress(args, 0);
+
+    if (!strcmp(args0, "add") || !strcmp(args0, "sub") || !strcmp(args0, "and") || !strcmp(args0, "or") || !strcmp(args0, "nor"))
     {
         return R_3_ARG;
     }
 
-    if (!strcmp(args[0], "move") || !strcmp(args[0], "mvhi") || !strcmp(args[0], "mvlo"))
+    if (!strcmp(args0, "move") || !strcmp(args0, "mvhi") || !strcmp(args0, "mvlo"))
     {
         return R_2_ARG;
     }
 
 
-    if (!strcmp(args[0], "addi") || !strcmp(args[0], "subi") || !strcmp(args[0], "andi") 
-    || !strcmp(args[0], "ori") || !strcmp(args[0], "nori") || !strcmp(args[0], "lb") || !strcmp(args[0], "sb") 
-    || !strcmp(args[0], "lw") || !strcmp(args[0], "sw") || !strcmp(args[0], "lh") || !strcmp(args[0], "sh"))
+    if (!strcmp(args0, "addi") || !strcmp(args0, "subi") || !strcmp(args0, "andi") 
+    || !strcmp(args0, "ori") || !strcmp(args0, "nori") || !strcmp(args0, "lb") || !strcmp(args0, "sb") 
+    || !strcmp(args0, "lw") || !strcmp(args0, "sw") || !strcmp(args0, "lh") || !strcmp(args0, "sh"))
     {
         return I_ARITH_LOG_MEM;
     }
 
-    if (!strcmp(args[0], "bne") || !strcmp(args[0], "beq") || !strcmp(args[0], "blt") || !strcmp(args[0], "bgt"))
+    if (!strcmp(args0, "bne") || !strcmp(args0, "beq") || !strcmp(args0, "blt") || !strcmp(args0, "bgt"))
     {
         return I_COND;
     }
 
-    if (!strcmp(args[0], "jmp") || !strcmp(args[0], "la") || !strcmp(args[0], "call"))
+    if (!strcmp(args0, "jmp") || !strcmp(args0, "la") || !strcmp(args0, "call"))
     {
         return J_ARG_LABEL;
     }
 
-    if (!strcmp(args[0], "stop"))
+    if (!strcmp(args0, "stop"))
     {
         return J_0_ARG;
     }
 
-    if (!strcmp(args[0], ".db") || !strcmp(args[0], ".dw") || !strcmp(args[0], ".dh") || !strcmp(args[0], ".asciz") 
-    || !strcmp(args[0], ".entry") || !strcmp(args[0], ".extern"))
+    if (!strcmp(args0, ".db") || !strcmp(args0, ".dw") || !strcmp(args0, ".dh") || !strcmp(args0, ".asciz") 
+    || !strcmp(args0, ".entry") || !strcmp(args0, ".extern"))
     {
         return DIR;
     }
 
-    if (IsStringLabel(args[0]))
+    if (IsStringLabel(args0))
     {
         return LABEL;
     }
@@ -189,7 +204,7 @@ static enum statement_type WhatStatement(line_args_arr_t args)
 }
 
 
-static void ValidateLineArgs(parser_t *parser, line_args_arr_t args, enum statement_type statement_type, size_t line_num)
+static void ValidateLineArgs(parser_t *parser, dvec_t *args, enum statement_type statement_type, size_t line_num)
 {
     int is_line_ok = TRUE;
     
@@ -230,7 +245,7 @@ static void ValidateLineArgs(parser_t *parser, line_args_arr_t args, enum statem
 
 }
 
-void ParserFirstPass(parser_t *parser, line_args_arr_t args, size_t line_number)
+void ParserFirstPass(parser_t *parser, dvec_t *args, size_t line_number)
 {
     enum statement_type statement_type = WhatStatement(args);
 
@@ -240,6 +255,7 @@ void ParserFirstPass(parser_t *parser, line_args_arr_t args, size_t line_number)
         parser->is_file_syntax_corrupt = TRUE;
     }
 
+    /* TODO if not is_file_syntax_corrupt */
     ValidateLineArgs(parser, args, statement_type, line_number);
 
     if (!parser->is_file_syntax_corrupt)

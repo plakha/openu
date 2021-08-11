@@ -42,7 +42,6 @@ int main(int argc, char const *argv[])
         sym_tab_t *sym_tab = NULL;
         parser_t *parser = NULL;
         size_t line_number = 0;
-        line_args_arr_t args_arr = {{'\0'}};
 
 
         if (file_status != OK)
@@ -63,6 +62,8 @@ int main(int argc, char const *argv[])
         do
         {
             char line_buf[MAX_LINE_LEN] = {'\0'};
+            dvec_t *args_arr = NULL;
+
             if (LINE_TOO_LONG == line_status)
             {
                 line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN, " \v\n", ' ');
@@ -70,7 +71,13 @@ int main(int argc, char const *argv[])
             }    
 
             line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN, " \v\n", ' ');
-            /* Create from line an array of strings */
+            args_arr = FileLineToArgs(line_buf);
+            if (NULL == args_arr)
+            {
+                fprintf(stderr, "Cannot allocate memory while running line %d in %s/n", __LINE__, __FILE__);
+        
+                return ERROR_STATUS;
+            }
 
             ParserFirstPass(parser, args_arr, line_number);
             /* send to 1st pass */
