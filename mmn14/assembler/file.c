@@ -2,6 +2,10 @@
 #include <string.h> /* strchr() */
 
 #include "file.h"
+#include "mmn14_types.h"
+/*
+typedef char line_arg_t[MAX_LINE_LEN];
+*/
 
 /* enum get_line_status {GOT_LINE, END_OF_FILE, LINE_TOO_LONG}; */
 /* TODO don't cut after `"` */
@@ -58,4 +62,10 @@ enum get_line_status FileGetLine(FILE *file, char *buf, size_t lim, const char i
     buf[i] = '\0';
 
     return status;
+}
+
+
+line_arg_t *FileLineToArgs(char *line)
+{
+    
 }
