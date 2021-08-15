@@ -11,6 +11,8 @@
 #include "parser.h"
 
 #define CMD_LEN (5)
+#define COMMA_STR (",")
+
 enum {FALSE = 0, TRUE};
 
 struct  parser /* file parser */
@@ -27,6 +29,7 @@ struct  parser /* file parser */
 
 /******* Static function declarations *********/
 static enum statement_type WhatStatement(const dvec_t *args, int is_under_label);
+static int IsStringLabel(const char *str);
 /***********************/
 
 
@@ -94,12 +97,88 @@ static int IsStringRegistry(const char *str)
     return StringToRegistry(str) != -1;
 }
 
+static int IsStringNum(const char *str)
+{
+    const char *runner = str;
+
+    assert(str);
+
+
+    if (!isdigit(*runner) && '+' != *runner && '-' != *runner)
+    {
+        return FALSE;
+    }
+
+    ++runner;
+
+    while (*runner)
+    {
+        if (!isdigit(*runner));
+
+        return FALSE;
+    }
+    
+    return TRUE;
+}
 
 
 
-static void UtilPushToSymTab(parser_t *parser_data, sym_tab_t *sym_tab, char *statement[]);
+
+static void UtilPushToSymTab(parser_t *parser_data, sym_tab_t *sym_tab, char *statement[])
+{
+
+}
+
+/* e.g.  .dh 1, 2, 3,3 */
+static IsValidateDirDec(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+{
+    static const size_t arg_min_size_dir_dec = 2;
+    const size_t first_elem_index = is_under_label ? 1 :0;
+    const char *arg0 = NULL;
+    size_t arg_arr_size = 0;
+    size_t i = 0;
+
+    assert(parser);
+    assert(arg_arr);
+    assert(WhatStatement(arg_arr, is_under_label) == DIR_DEC);
+
+    arg_arr_size = DVECSize(arg_arr);
+    arg0 = DVECGetItemAddress(arg_arr, first_elem_index);
 
 
+    /*
+    size >= 2
+    every even element (except 0th) is ','
+
+    every odd element is number
+    last element is number
+
+    */
+
+    for (i = 1; i < arg_arr_size; i += 2)
+    {
+        if (!IsStringNum(DVECGetItemAddress(arg_arr, i + first_elem_index)))
+        {
+            printf("Error in source file %s, line %ld: expected numerical arguments for %s statement\n", 
+            parser->source_file_name, parser->cur_line_num, arg0);
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
+
+static IsValidateDirQulif(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+{
+    return 1;
+}
+
+
+static IsValidateDirAscii(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+{
+    return 1;
+}
 
 /* e.g. add $1, $4, $1 */
 static int IsValidateR3(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
@@ -128,13 +207,13 @@ static int IsValidateR3(parser_t *parser, const dvec_t *arg_arr, int is_under_la
         validate 6 args 
         Validate arg0 is a legal operator (add, sub, etc) - redundant (assert only)
         validate arg1 legal registry
-        validate arg3 is ","
-        validate arg4 legal registry
-        validate arg5  is ","
-        validate arg6 legal registry
+        validate arg2 is ","
+        validate arg3 legal registry
+        validate arg4  is ","
+        validate arg5 legal registry
     */
 
-    if (DVECSize(arg_arr) - first_elem_index != arg_size_r3 || strcmp(arg3, ",") || strcmp(arg5, ","))
+    if (DVECSize(arg_arr) - first_elem_index != arg_size_r3 || strcmp(arg2, COMMA_STR) || strcmp(arg4, COMMA_STR))
     {
         parser->is_file_syntax_corrupt = TRUE;
         printf("Error in source file %s, line %ld: expected 3 comma-separated arguments for %s statement\n", 
@@ -143,7 +222,7 @@ static int IsValidateR3(parser_t *parser, const dvec_t *arg_arr, int is_under_la
         return FALSE;
     }
 
-    if (!IsStringRegistry(arg1) || !IsStringRegistry(arg4) || !IsStringRegistry(arg6))
+    if (!IsStringRegistry(arg1) || !IsStringRegistry(arg3) || !IsStringRegistry(arg5))
     {
         parser->is_file_syntax_corrupt = TRUE;
         printf("Error in source file %s, line %ld: expecting legal registries as arguments for %s statement\n", 
@@ -156,7 +235,7 @@ static int IsValidateR3(parser_t *parser, const dvec_t *arg_arr, int is_under_la
 }
 
 /* e.g. move/mvhi/mvlo $23, $2 */
-static int IsValidateR2(const parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+static int IsValidateR2(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
     static const size_t arg_size_r2 = 4; /* incl "," */
     const char *arg0 = NULL;
@@ -183,7 +262,7 @@ static int IsValidateR2(const parser_t *parser, const dvec_t *arg_arr, int is_un
         
     */
 
-    if (DVECSize(arg_arr) - first_elem_index != arg_size_r2 || strcmp(arg22, ","))
+    if (DVECSize(arg_arr) - first_elem_index != arg_size_r2 || strcmp(arg2, COMMA_STR))
     {
         parser->is_file_syntax_corrupt = TRUE;
         printf("Error in source file %s, line %ld: expected 2 comma-separated arguments for %s statement\n", 
@@ -205,38 +284,234 @@ static int IsValidateR2(const parser_t *parser, const dvec_t *arg_arr, int is_un
     return TRUE;
 }
 
-
-static int IsValidateJ0(const parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+/* stop only*/
+static int IsValidateJ0(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
+    static const size_t arg_size_j0 = 1;
+    const size_t first_elem_index = is_under_label ? 1 :0;
+    const char *arg0 = NULL;
+
+    assert(parser);
+    assert(arg_arr);
+    assert(WhatStatement(arg_arr, is_under_label) == J_0_ARG);
 
 
-    return 1;
+    arg0 = (const char *)DVECGetItemAddress(arg_arr, first_elem_index);
+
+    if (DVECSize(arg_arr) - first_elem_index != arg_size_j0)
+    {
+        parser->is_file_syntax_corrupt = TRUE;
+        printf("Error in source file %s, line %ld: expected 0 arguments for %s statement\n", 
+            parser->source_file_name, parser->cur_line_num, arg0);
+
+        return FALSE;
+    }
+
+
+
+
+    return TRUE;
 }
 
-/* jmp label\reg ; la label ; call label */
-static int IsValidateJ1(const parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+/*  la label ; call label */
+static int IsValidateJ1Label(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
-    static const size_t arg_size_r2 = 2;
+    static const size_t arg_size_j1 = 2;
+    const size_t first_elem_index = is_under_label ? 1 :0;
+
     const char *arg0 = NULL;
     const char *arg1 = NULL;
 
     assert(parser);
     assert(arg_arr);
-    assert(WhatStatement(arg_arr, is_under_label) == J_ARG_LABEL);
+    assert(WhatStatement(arg_arr, is_under_label) == J_1_LABEL);
+
 
     arg0 = (const char *)DVECGetItemAddress(arg_arr, first_elem_index);
     arg1 = (const char *)DVECGetItemAddress(arg_arr, first_elem_index + 1);
 
-    return 1;
+    if (DVECSize(arg_arr) - first_elem_index != arg_size_j1)
+    {
+        parser->is_file_syntax_corrupt = TRUE;
+        printf("Error in source file %s, line %ld: expected 1 arguments for %s statement\n", 
+            parser->source_file_name, parser->cur_line_num, arg0);
+
+        return FALSE;
+    }
+
+    if (!IsStringLabel(arg1))
+    {
+        parser->is_file_syntax_corrupt = TRUE;
+        printf("Error in source file %s, line %ld: expecting a legal label as argument for %s statement\n", 
+        parser->source_file_name, parser->cur_line_num, arg0);
+
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
-static int IsValidateICond(const parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+/* jmp only */
+static int IsValidateJ1Arg(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
-    return 1;
+    static const size_t arg_size_j1 = 2;
+    const size_t first_elem_index = is_under_label ? 1 :0;
+
+    const char *arg0 = NULL;
+    const char *arg1 = NULL;
+
+    assert(parser);
+    assert(arg_arr);
+    assert(WhatStatement(arg_arr, is_under_label) == J_1_ARG);
+
+    arg0 = (const char *)DVECGetItemAddress(arg_arr, first_elem_index);
+    arg1 = (const char *)DVECGetItemAddress(arg_arr, first_elem_index + 1);
+
+    if (DVECSize(arg_arr) - first_elem_index != arg_size_j1)
+    {
+        parser->is_file_syntax_corrupt = TRUE;
+        printf("Error in source file %s, line %ld: expected 1 argument for %s statement\n", 
+            parser->source_file_name, parser->cur_line_num, arg0);
+
+        return FALSE;
+    }
+
+    if (!IsStringLabel(arg1) && !IsStringRegistry(arg1))
+    {
+        parser->is_file_syntax_corrupt = TRUE;
+        printf("Error in source file %s, line %ld: expecting a legal label or register as argument for %s statement\n", 
+        parser->source_file_name, parser->cur_line_num, arg0);
+
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 
+/*     if (!strcmp(args0, "bne") || !strcmp(args0, "beq") || !strcmp(args0, "blt") || !strcmp(args0, "bgt"))
+e.g blt $5, $24, loop 
+ */
+static int IsValidateICond(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+{
+    static const size_t arg_size_i = 6;
+    const size_t first_elem_index = is_under_label ? 1 : 0;
 
+    const char *arg0 = NULL;
+    const char *arg1 = NULL;
+    const char *arg2 = NULL;
+    const char *arg3 = NULL;
+    const char *arg4 = NULL;
+    const char *arg5 = NULL;
+    
+    /*
+    arg0 - operator
+    arg1 register
+    arg2 comma
+    arg3 register
+    arg4 comma
+    arg5 label
+
+    */
+
+
+    assert(parser);
+    assert(arg_arr);
+    assert(WhatStatement(arg_arr, is_under_label) == I_COND);
+
+    arg0 = (const char *)DVECGetItemAddress(arg_arr, first_elem_index);
+    arg1 = (const char *)DVECGetItemAddress(arg_arr, first_elem_index + 1);
+    arg2 = (const char *)DVECGetItemAddress(arg_arr, first_elem_index + 2);
+    arg3 = (const char *)DVECGetItemAddress(arg_arr, first_elem_index + 3);
+    arg4 = (const char *)DVECGetItemAddress(arg_arr, first_elem_index + 4);
+    arg5 = (const char *)DVECGetItemAddress(arg_arr, first_elem_index + 5);
+
+    if (DVECSize(arg_arr) - first_elem_index != arg_size_i || strcmp(arg2, COMMA_STR) || strcmp(arg4, COMMA_STR))
+    {
+        parser->is_file_syntax_corrupt = TRUE;
+        printf("Error in source file %s, line %ld: expected 3 comma-separated arguments for %s statement\n", 
+            parser->source_file_name, parser->cur_line_num, arg0);
+
+        return FALSE;
+    }
+
+    if (!IsStringRegistry(arg1) || !IsStringRegistry(arg3) || !IsStringLabel(arg5))
+    {
+        parser->is_file_syntax_corrupt = TRUE;
+        printf("Error in source file %s, line %ld: expecting the following order of arguments for  %s statement:  legal label, legal label, legal register\n", 
+        parser->source_file_name, parser->cur_line_num, arg0);
+
+        return FALSE;
+    }
+
+
+
+    return TRUE;
+}
+
+
+/*
+if (!strcmp(args0, "addi") || !strcmp(args0, "subi") || !strcmp(args0, "andi") 
+    || !strcmp(args0, "ori") || !strcmp(args0, "nori") || !strcmp(args0, "lb") || !strcmp(args0, "sb") 
+    || !strcmp(args0, "lw") || !strcmp(args0, "sw") || !strcmp(args0, "lh") || !strcmp(args0, "sh"))
+
+    e.g lh $9, 34, $2
+
+*/
+static int IsValidateIArithLogMem(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+{
+    static const size_t arg_size_i = 6;
+    const size_t first_elem_index = is_under_label ? 1 : 0;
+
+    const char *arg0 = NULL;
+    const char *arg1 = NULL;
+    const char *arg2 = NULL;
+    const char *arg3 = NULL;
+    const char *arg4 = NULL;
+    const char *arg5 = NULL;
+    
+    /*
+    arg0 - operator
+    arg1 register
+    arg2 comma
+    arg3 int number
+    arg4 comma
+    arg5 register
+
+    */
+
+
+    assert(parser);
+    assert(arg_arr);
+    assert(WhatStatement(arg_arr, is_under_label) == I_ARITH_LOG_MEM);
+
+    arg0 = (const char *)DVECGetItemAddress(arg_arr, first_elem_index);
+    arg1 = (const char *)DVECGetItemAddress(arg_arr, first_elem_index + 1);
+    arg2 = (const char *)DVECGetItemAddress(arg_arr, first_elem_index + 2);
+    arg3 = (const char *)DVECGetItemAddress(arg_arr, first_elem_index + 3);
+    arg4 = (const char *)DVECGetItemAddress(arg_arr, first_elem_index + 4);
+    arg5 = (const char *)DVECGetItemAddress(arg_arr, first_elem_index + 5);
+
+    if (DVECSize(arg_arr) - first_elem_index != arg_size_i || strcmp(arg2, COMMA_STR) || strcmp(arg4, COMMA_STR))
+    {
+        parser->is_file_syntax_corrupt = TRUE;
+        printf("Error in source file %s, line %ld: expected 3 comma-separated arguments for %s statement\n", 
+            parser->source_file_name, parser->cur_line_num, arg0);
+
+        return FALSE;
+    }
+
+    if (!IsStringRegistry(arg1) || !IsStringNum(arg3) || !IsStringRegistry(arg5))
+    {
+        parser->is_file_syntax_corrupt = TRUE;
+        printf("Error in source file %s, line %ld: expecting the following order of arguments for  %s statement:  legal label, legal label, legal register\n", 
+        parser->source_file_name, parser->cur_line_num, arg0);
+
+        return FALSE;
+    }
+
+    return 1;
+}
 
 static int IsStringLabel(const char *str)
 {
@@ -317,9 +592,14 @@ static enum statement_type WhatStatement(const dvec_t *args, int is_under_label)
         return I_COND;
     }
 
-    if (!strcmp(args0, "jmp") || !strcmp(args0, "la") || !strcmp(args0, "call"))
+    if (!strcmp(args0, "la") || !strcmp(args0, "call"))
     {
-        return J_ARG_LABEL;
+        return J_1_LABEL;
+    }
+
+    if (!strcmp(args0, "jmp"))
+    {
+        return J_1_ARG;
     }
 
     if (!strcmp(args0, "stop"))
@@ -327,11 +607,21 @@ static enum statement_type WhatStatement(const dvec_t *args, int is_under_label)
         return J_0_ARG;
     }
 
-    if (!strcmp(args0, ".db") || !strcmp(args0, ".dw") || !strcmp(args0, ".dh") || !strcmp(args0, ".asciz") 
-    || !strcmp(args0, ".entry") || !strcmp(args0, ".extern"))
+    if (!strcmp(args0, ".entry") || !strcmp(args0, ".extern"))
     {
-        return DIR;
+        return DIR_QUALIF;
     }
+
+    if (!strcmp(args0, ".db") || !strcmp(args0, ".dw") || !strcmp(args0, ".dh"))
+    {
+        return DIR_DEC;
+    }
+
+    if (!strcmp(args0, ".asciz"))
+    {
+        return DIR_ASCII;
+    }
+
 
     if (IsStringLabel(args0))
     {
@@ -347,7 +637,6 @@ static enum statement_type WhatStatement(const dvec_t *args, int is_under_label)
     {
         #ifdef DEBUG
         const char *space_checker = args0;
-
         while (*space_checker)
         {
             assert(isspace(*space_checker));
@@ -370,28 +659,63 @@ static void ValidateLineArgs(parser_t *parser, dvec_t *args, enum statement_type
     switch (statement_type)
     {
     case R_3_ARG:
-        if (!IsValidateR3(parser, args, FALSE))
+        if (!IsValidateR3(parser, args, is_under_label))
         {
             is_line_ok = FALSE;
         }
         break;
     
     case R_2_ARG:
+     if (!IsValidateR2(parser, args, is_under_label))
+        {
+            is_line_ok = FALSE;
+        }
     break;
     
     case J_0_ARG:
+        if (!IsValidateJ0(parser, args, is_under_label))
+        {
+            is_line_ok = FALSE;
+        }
         break;
 
-    case J_ARG_LABEL:
+    case J_1_LABEL:
+        if (!IsValidateJ1Label(parser, args, is_under_label))
+        {
+            is_line_ok = FALSE;
+        }
+        break;
+
+    case J_1_ARG:
+        if (!IsValidateJ1Arg(parser, args, is_under_label))
+        {
+            is_line_ok = FALSE;
+        }
         break;
 
     case I_COND:
+        if (!IsValidateICond(parser, args, is_under_label))
+        {
+            is_line_ok = FALSE;
+        }
         break;
 
     case I_ARITH_LOG_MEM:
+        if (!IsValidateIArithLogMem(parser, args, is_under_label))
+        {
+            is_line_ok = FALSE;
+        }
         break;
 
-    case DIR:
+        break;
+
+    case DIR_QUALIF:
+        break;
+
+    case DIR_DEC:
+        break;
+
+    case DIR_ASCII:
         break;
 
     case LABEL:
@@ -415,10 +739,13 @@ static void ValidateLineArgs(parser_t *parser, dvec_t *args, enum statement_type
         break;
 
     case ERROR:
-        assert(FALSE);
+        is_line_ok = FALSE;
+
         break;
 
     default:
+        assert(BLANK == statement_type || COMMENT == statement_type);
+
         break;
     }
 
@@ -440,19 +767,6 @@ void ParserFirstPass(parser_t *parser, dvec_t *args, size_t line_number)
         
     parser->cur_line_num = line_number;
     statement_type = WhatStatement(args, FALSE);
-
-    if (BLANK == statement_type || COMMENT == statement_type)
-    {
-        return;
-    }
-
-    if (ERROR == statement_type)
-    {
-        /* print line number: unkown statement */
-        parser->is_file_syntax_corrupt = TRUE;
-
-        return;
-    }
 
     ValidateLineArgs(parser, args, statement_type, FALSE);
 
