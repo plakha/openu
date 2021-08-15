@@ -109,7 +109,7 @@ void DVECPopBack(dvec_t *dvec)
 	--(dvec->num_of_elements);	
 }
 
-void *DVECGetItemAddress(dvec_t *dvec, size_t index)
+void *DVECGetItemAddress(const dvec_t *dvec, size_t index)
 {
 	assert(NULL != dvec);
 	

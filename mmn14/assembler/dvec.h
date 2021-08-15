@@ -20,7 +20,7 @@ int DVECPushBack(dvec_t *devc, const void *element);
 void DVECPopBack(dvec_t *dvec);
 
 /* Do not pass NULL argument. */
-void *DVECGetItemAddress(dvec_t *dvec, size_t index);
+void *DVECGetItemAddress(const dvec_t *dvec, size_t index);
 
 /* Do not pass NULL argument. */
 size_t DVECSize(const dvec_t *dvec);
