@@ -241,7 +241,19 @@ static int IsStringLabel(char *str)
 
 static enum statement_type WhatStatement(const dvec_t *args, int is_under_label)
 {
-    char *args0 = (char *) DVECGetItemAddress(args, is_under_label ? 1 : 0);
+    const char *args0 = NULL;
+    size_t len_args = 0;
+
+    assert (args);
+
+    len_args = DVECSize(args) - is_under_label ? 1 : 0;
+    if (0 == len_args)
+    {
+        /* empty statement (e.g "MYLABEL:") */
+        return ERROR;
+    }
+
+    args0 = (const char *) DVECGetItemAddress(args, is_under_label ? 1 : 0);
 
     if (!strcmp(args0, "add") || !strcmp(args0, "sub") || !strcmp(args0, "and") || !strcmp(args0, "or") || !strcmp(args0, "nor"))
     {
@@ -285,6 +297,25 @@ static enum statement_type WhatStatement(const dvec_t *args, int is_under_label)
     if (IsStringLabel(args0))
     {
         return LABEL;
+    }
+
+    if (COMMENT_CHAR == *args0)
+    {
+        return COMMENT;
+    }
+
+    if (isspace(*args0))
+    {
+        #ifdef DEBUG
+        const char *space_checker = args0;
+
+        while (*space_checker)
+        {
+            assert(isspace(*space_checker));
+            ++space_checker;
+        }
+        
+        #endif
     }
 
     return ERROR;
@@ -334,9 +365,11 @@ static void ValidateLineArgs(parser_t *parser, dvec_t *args, enum statement_type
         }
         else
         {
+            enum statement_type labeled_statement = ERROR;
+
             assert(TRUE == is_under_label);
 
-            enum statement_type labeled_statement = WhatStatement(args, is_under_label);
+            labeled_statement = WhatStatement(args, is_under_label); /* check statement after the label */
             ValidateLineArgs(parser, args, labeled_statement, is_under_label);
         }
         break;
