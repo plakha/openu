@@ -12,6 +12,7 @@
 
 #define CMD_LEN (5)
 #define COMMA_STR (",")
+#define MAX_LABEL_SIZE (31)
 
 enum {FALSE = 0, TRUE};
 
@@ -55,6 +56,12 @@ parser_t *ParserCreate(const char *source_file_name, ram_t *ram, sym_tab_t *sym_
     return new_parser;
 
 }
+
+void ParserDestroy(parser_t *parser)
+{
+    (void)parser;
+}
+
 
 void FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
 {
@@ -154,13 +161,32 @@ static IsValidateDirDec(parser_t *parser, const dvec_t *arg_arr, int is_under_la
     last element is number
 
     */
-
-    for (i = 1; i < arg_arr_size; i += 2)
+    if (!IsStringNum(DVECGetItemAddress(arg_arr, arg_arr_size - 1)))
     {
-        if (!IsStringNum(DVECGetItemAddress(arg_arr, i + first_elem_index)))
+        printf("Error in source file %s, line %ld: missing last numerical arguments for %s statement\n", 
+            parser->source_file_name, parser->cur_line_num, arg0);
+
+            return FALSE;
+    }
+
+    for (i = 1 + first_elem_index; i < arg_arr_size; i += 2)
+    {
+        if (!IsStringNum(DVECGetItemAddress(arg_arr, i)))
         {
             printf("Error in source file %s, line %ld: expected numerical arguments for %s statement\n", 
             parser->source_file_name, parser->cur_line_num, arg0);
+
+            return FALSE;
+        }
+    }
+
+    for (i = 2 + first_elem_index; i < arg_arr_size; i += 2)
+    {
+        if (strcmp(DVECGetItemAddress(arg_arr, i), COMMA_STR))
+        {
+            printf("Error in source file %s, line %ld: expected comma-separated arguments for %s statement\n", 
+            parser->source_file_name, parser->cur_line_num, arg0);
+
             return FALSE;
         }
     }
@@ -515,10 +541,20 @@ static int IsValidateIArithLogMem(parser_t *parser, const dvec_t *arg_arr, int i
 
 static int IsStringLabel(const char *str)
 {
-    const size_t str_len = strlen(str);
+    size_t str_len = -1;
     size_t i = 0;
-    /* TODO add keywords */
+    /* TODO add more keywords */
     static const char *keywords[] = {"add", "addi", NULL};
+
+    assert(str);
+
+    str_len = strlen(str);
+
+    /* str_len + 1 because label declaration ends with ':' */
+    if (str_len + 1 > MAX_LABEL_SIZE)
+    {
+        return FALSE;
+    }
 
     if (str[0] < 'A' || str[0] > 'Z')
     {
@@ -541,7 +577,8 @@ static int IsStringLabel(const char *str)
     for (i = 0; NULL != keywords + i ; ++i)
     {
         size_t keyword_len = strlen(keywords[i]);
-        if (!strncmp(keywords[i], str, keyword_len) && keyword_len == (str_len + 1))
+        /* e.g. "add: [...]" is illegal label declaration. strncpm("add", "add:", 3) returns 0 */
+        if (keyword_len == (str_len + 1) && !strncmp(keywords[i], str, keyword_len))
         {
             return FALSE;
         }
@@ -635,7 +672,7 @@ static enum statement_type WhatStatement(const dvec_t *args, int is_under_label)
 
     if (isspace(*args0))
     {
-        #ifdef DEBUG
+        #ifndef NDEBUG
         const char *space_checker = args0;
         while (*space_checker)
         {
