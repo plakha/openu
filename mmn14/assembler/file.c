@@ -24,7 +24,7 @@ enum get_line_status FileGetLine(FILE *file, char *buf, size_t lim, const char i
     {
         ch = fgetc(file);
 
-
+        /* TODO if eof() */
         if (EOF == ch)
         {
             status = END_OF_FILE;
@@ -83,7 +83,7 @@ dvec_t *FileLineToArgs(const char line[])
     dvec_t *args = DVECCreate(sizeof(buf), N_ARGS_EXPECTED);
     if (NULL == args)
     {
-        fprintf(stderr, "Cannot allocate memory while running line %d in %s/n", __LINE__, __FILE__);
+        fprintf(stderr, "FATAL ERROR: could not allocate memory while running line %d in %s/n", __LINE__, __FILE__);
 
         return NULL;
     }

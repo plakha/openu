@@ -30,7 +30,7 @@ struct  parser /* file parser */
 
 /******* Static function declarations *********/
 static enum statement_type WhatStatement(const dvec_t *args, int is_under_label);
-static int IsStringLabel(const char *str);
+static int IsStringLabel(const char *str, int is_declaration);
 /***********************/
 
 
@@ -138,7 +138,7 @@ static void UtilPushToSymTab(parser_t *parser_data, sym_tab_t *sym_tab, char *st
 }
 
 /* e.g.  .dh 1, 2, 3,3 */
-static IsValidateDirDec(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+static int IsValidateDirDec(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
     static const size_t arg_min_size_dir_dec = 2;
     const size_t first_elem_index = is_under_label ? 1 :0;
@@ -163,9 +163,9 @@ static IsValidateDirDec(parser_t *parser, const dvec_t *arg_arr, int is_under_la
 
     */
 
-    if (arg_min_size_dir_dec > arg_arr_size)
+    if (arg_min_size_dir_dec > arg_arr_size - first_elem_index)
     {
-        printf("Error in source file %s, line %ld: expecxting numerical arguments for %s statement\n", 
+        printf("ERROR in source file %s, line %ld: expecting arguments for %s statement\n", 
             parser->source_file_name, parser->cur_line_num, arg0);
 
             return FALSE;
@@ -173,7 +173,7 @@ static IsValidateDirDec(parser_t *parser, const dvec_t *arg_arr, int is_under_la
 
     if (!IsStringNum(DVECGetItemAddress(arg_arr, arg_arr_size - 1)))
     {
-        printf("Error in source file %s, line %ld: missing last numerical arguments for %s statement\n", 
+        printf("ERROR in source file %s, line %ld: missing last numerical arguments for %s statement\n", 
             parser->source_file_name, parser->cur_line_num, arg0);
 
             return FALSE;
@@ -183,7 +183,7 @@ static IsValidateDirDec(parser_t *parser, const dvec_t *arg_arr, int is_under_la
     {
         if (!IsStringNum(DVECGetItemAddress(arg_arr, i)))
         {
-            printf("Error in source file %s, line %ld: expected numerical arguments for %s statement\n", 
+            printf("ERROR in source file %s, line %ld: expecting numerical arguments for %s statement\n", 
             parser->source_file_name, parser->cur_line_num, arg0);
 
             return FALSE;
@@ -194,7 +194,7 @@ static IsValidateDirDec(parser_t *parser, const dvec_t *arg_arr, int is_under_la
     {
         if (strcmp(DVECGetItemAddress(arg_arr, i), COMMA_STR))
         {
-            printf("Error in source file %s, line %ld: expected comma-separated arguments for %s statement\n", 
+            printf("ERROR in source file %s, line %ld: expected comma-separated arguments for %s statement\n", 
             parser->source_file_name, parser->cur_line_num, arg0);
 
             return FALSE;
@@ -204,15 +204,77 @@ static IsValidateDirDec(parser_t *parser, const dvec_t *arg_arr, int is_under_la
     return TRUE;
 }
 
-
-static IsValidateDirQulif(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+/* check if the directive is .extern or .entry */
+static int IsValidateDirQualif(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
-    return 1;
+    static const size_t arg_size_dir_qualif = 2;
+    const size_t first_elem_index = is_under_label ? 1 :0;
+    const char *arg0 = NULL;
+    size_t arg_arr_size = 0;
+    size_t i = 0;
+
+    assert(parser);
+    assert(arg_arr);
+    assert(WhatStatement(arg_arr, is_under_label) == DIR_QUALIF);
+
+    arg_arr_size = DVECSize(arg_arr);
+    arg0 = DVECGetItemAddress(arg_arr, first_elem_index);
+
+    /* 
+        First arg .extern or .entry (assertion)
+        second arg is a reference to a legal label (without the ':' - terminator)
+
+        size 2 exactrly
+
+        if preceded by a label declaration - warning: the label won't be counted
+    */
+
+    if (is_under_label)
+    {
+        printf("WARNING for source file %s, line %ld: declaration of label %s is illegal and will be ignored: not allowed to label %s directive.\n", 
+        parser->source_file_name, parser->cur_line_num, (const char *)DVECGetItemAddress(arg_arr, 0) , arg0);  
+    }
+
+    if (arg_size_dir_qualif != arg_arr_size - first_elem_index)
+    {
+        printf("ERROR in source file %s, line %ld: expecting 1 and only 1 argument for %s statement\n", 
+            parser->source_file_name, parser->cur_line_num, arg0);
+
+            return FALSE;
+    } 
+
+    if (!IsStringLabel(DVECGetItemAddress(arg_arr, first_elem_index + 1), FALSE))
+    {
+        printf("ERROR in source file %s, line %ld: expecting legal label as argument for %s statement\n", 
+        parser->source_file_name, parser->cur_line_num, arg0);
+
+        return FALSE;
+    } 
+    }
+
+    return TRUE;
 }
 
+static int IsStringLegalAscizArg(const char *str)
+{
+    /*
+        starts with `"`
+
+        ends with `"`, and after it can be a number of space chars
+        from `"` to `"` - printable chars only -> check all for isprint(), including subsequent space chars
+    */
+
+
+   
+}
 
 static IsValidateDirAscii(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
+    /*
+        exactly size 2
+        if not under label - warning
+        arg 1 is legal ascuz arg 
+    */
     return 1;
 }
 
@@ -375,7 +437,7 @@ static int IsValidateJ1Label(parser_t *parser, const dvec_t *arg_arr, int is_und
         return FALSE;
     }
 
-    if (!IsStringLabel(arg1))
+    if (!IsStringLabel(arg1, FALSE))
     {
         parser->is_file_syntax_corrupt = TRUE;
         printf("Error in source file %s, line %ld: expecting a legal label as argument for %s statement\n", 
@@ -412,7 +474,7 @@ static int IsValidateJ1Arg(parser_t *parser, const dvec_t *arg_arr, int is_under
         return FALSE;
     }
 
-    if (!IsStringLabel(arg1) && !IsStringRegistry(arg1))
+    if (!IsStringLabel(arg1, FALSE) && !IsStringRegistry(arg1))
     {
         parser->is_file_syntax_corrupt = TRUE;
         printf("Error in source file %s, line %ld: expecting a legal label or register as argument for %s statement\n", 
@@ -471,7 +533,7 @@ static int IsValidateICond(parser_t *parser, const dvec_t *arg_arr, int is_under
         return FALSE;
     }
 
-    if (!IsStringRegistry(arg1) || !IsStringRegistry(arg3) || !IsStringLabel(arg5))
+    if (!IsStringRegistry(arg1) || !IsStringRegistry(arg3) || !IsStringLabel(arg5, FALSE))
     {
         parser->is_file_syntax_corrupt = TRUE;
         printf("Error in source file %s, line %ld: expecting the following order of arguments for  %s statement:  legal label, legal label, legal register\n", 
@@ -549,36 +611,50 @@ static int IsValidateIArithLogMem(parser_t *parser, const dvec_t *arg_arr, int i
     return 1;
 }
 
-static int IsStringLabel(const char *str)
+
+/* on reference, there is no ':' terminator, on declaration - there is. 
+DECLAREDLABEL: []
+
+.entry REFERENCEDLABEL
+ */
+static int IsStringLabel(const char *str, int is_declaration)
 {
     size_t str_len = -1;
     size_t i = 0;
     /* TODO add more keywords */
-    static const char *keywords[] = {"add", "addi", NULL};
+    static const char *keywords[] = {"add", "sub", "and", "or", "nor", "move", "mvhi", "mvlo", "addi", "subi", "andi", "ori", "nori", "bne", "beq", 
+    "blt", "bgt", "lb", "sb", "lw", "sw", "lh", "sh", "jmp", "la", "call", "stop", NULL};
+    char str_modified_copy[MAX_LABEL_SIZE] = {'\0'};
 
     assert(str);
 
-    str_len = strlen(str);
+    strcpy(str_modified_copy, str);
+    if (!is_declaration)
+    {
+        strcat(str_modified_copy, ":");
+    }
 
-    /* str_len + 1 because label declaration ends with ':' */
-    if (str_len + 1 > MAX_LABEL_SIZE)
+    str_len = strlen(str_modified_copy);
+
+    /* str_len - 1 because label declaration ends with ':' */
+    if (str_len - 1 > MAX_LABEL_SIZE)
     {
         return FALSE;
     }
 
-    if (str[0] < 'A' || str[0] > 'Z')
+    if (str_modified_copy[0] < 'A' || str_modified_copy[0] > 'Z')
     {
         return FALSE;
     }
 
-    if (':' != str[str_len - 1])
+    if (':' != str_modified_copy[str_len - 1])
     {
         return FALSE;
     }
 
     for (i = 1; i < str_len - 1; ++i)
     {
-        if (!isalnum(str[i]))
+        if (!isalnum(str_modified_copy[i]))
         {
             return FALSE;
         }
@@ -586,9 +662,9 @@ static int IsStringLabel(const char *str)
 
     for (i = 0; NULL != keywords + i ; ++i)
     {
-        size_t keyword_len = strlen(keywords[i]);
+        const size_t keyword_len = strlen(keywords[i]);
         /* e.g. "add: [...]" is illegal label declaration. strncpm("add", "add:", 3) returns 0 */
-        if (keyword_len == (str_len + 1) && !strncmp(keywords[i], str, keyword_len))
+        if (keyword_len == (str_len + 1) && !strncmp(keywords[i], str_modified_copy, keyword_len))
         {
             return FALSE;
         }
@@ -670,7 +746,7 @@ static enum statement_type WhatStatement(const dvec_t *args, int is_under_label)
     }
 
 
-    if (IsStringLabel(args0))
+    if (IsStringLabel(args0, TRUE))
     {
         return LABEL;
     }

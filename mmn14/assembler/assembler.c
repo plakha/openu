@@ -40,7 +40,6 @@ int main(int argc, char const *argv[])
         char filename[MAX_FILENAME_LEN] = {'\0'};
         enum get_line_status line_status = 0;
 
-        puts(filepaths[i]);
         FILE *pfile = NULL;
         ram_t *ram = NULL;
         sym_tab_t *sym_tab = NULL;
