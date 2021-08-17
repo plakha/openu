@@ -120,9 +120,10 @@ static int IsStringNum(const char *str)
 
     while (*runner)
     {
-        if (!isdigit(*runner));
-
-        return FALSE;
+        if (!isdigit(*runner))
+        {
+            return FALSE;
+        }
     }
     
     return TRUE;
@@ -161,6 +162,15 @@ static IsValidateDirDec(parser_t *parser, const dvec_t *arg_arr, int is_under_la
     last element is number
 
     */
+
+    if (arg_min_size_dir_dec > arg_arr_size)
+    {
+        printf("Error in source file %s, line %ld: expecxting numerical arguments for %s statement\n", 
+            parser->source_file_name, parser->cur_line_num, arg0);
+
+            return FALSE;
+    }
+
     if (!IsStringNum(DVECGetItemAddress(arg_arr, arg_arr_size - 1)))
     {
         printf("Error in source file %s, line %ld: missing last numerical arguments for %s statement\n", 
@@ -800,10 +810,10 @@ void ParserFirstPass(parser_t *parser, dvec_t *args, size_t line_num)
     #ifndef NDEBUG
     {
         int i = 0;
-        printf("ParserFirstPass, file line %d\n, line_number");
+       /* printf("ParserFirstPass, file line %lu\n", parser->cur_line_num);*/
         for (;i < DVECSize(args); ++i)
         {
-            printf("%s ", DVECGetItemAddress(args, i));
+           printf("%s ", (const char *)DVECGetItemAddress(args, i));
         }
         puts("");
     }

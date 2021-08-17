@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h> /* strchr() */
 #include <ctype.h> /* isspace() */
+#include <assert.h> /* assert() */
 
 #include "file.h"
 #include "mmn14_types.h"
@@ -13,15 +14,16 @@ typedef char line_arg_t[MAX_LINE_LEN];
 /* TODO don't cut after `"` */
 enum get_line_status FileGetLine(FILE *file, char *buf, size_t lim, const char ignore_chars[], int delim)
 {
-    int ch = '\0';
+    int ch = EOF;
     size_t i = 0;
     int should_put_delim = 0;
     enum get_line_status status = LINE_TOO_LONG;
 
 
-    for (; i < lim - 1  ; ++i)
+    for (; i < (lim - 1)  ; ++i)
     {
         ch = fgetc(file);
+
 
         if (EOF == ch)
         {

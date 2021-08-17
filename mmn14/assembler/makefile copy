@@ -1,0 +1,34 @@
+CC = gcc
+CCFLAGS = -pedantic -Wall -DNDEBUG
+DEBUGCCFLAGS = -pedantic -Wall -g3 -O0
+SOURCES=assembler.c mylib1.c mylib2.c 
+
+#assembler.h mylib1.h mylib2.h
+HEADERS=$(SOURCES:.c=.h)
+
+#if needed. headers that have no libraries 
+HEADERS+=custom_type_and_defines.h
+OBJECTS=$(SOURCES:.c=.o)
+OBJDIR=obj
+EXECUTABLE=assembler
+
+
+#if building in release(all) after having built in debug, with no changes in source
+#then run make clean first
+all: $(EXECUTABLE)
+
+#if building in debug after having built in release (all), with no changes in source
+#then run make clean first
+debug:  CCFLAGS=$(DEBUGCCFLAGS)
+debug: $(EXECUTABLE)
+
+$(EXECUTABLE): $(OBJECTS)
+	$(CC) $(CCFLAGS) -o $@ $^
+		
+%.o: %.c $(HEADERS)
+	$(CC) $(CCFLAGS) -ansi -c $<
+
+.PHONY: clean
+		
+clean:
+	rm *.o assembler

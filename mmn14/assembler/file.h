@@ -22,8 +22,9 @@ enum get_line_status FileGetLine(FILE *file, char *buf, size_t lim, const char i
 
 
 /* if prev status was LINE_TOO_LONG - do not promote, because we are in the same line still. The line is to be ignored beyond MAX_LINE_LEN */
-void FilePromoteLineCounter(size_t *input_line_count, enum get_line_status prev_line_status);
-
+/*
+oid FilePromoteLineCounter(size_t *input_line_count, enum get_line_status prev_line_status);
+*/
 
 dvec_t *FileLineToArgs(const char line[]);
 

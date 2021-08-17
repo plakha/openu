@@ -38,13 +38,13 @@ int main(int argc, char const *argv[])
     {
         int file_status = CheckFileName(filepaths[i]);
         char filename[MAX_FILENAME_LEN] = {'\0'};
-        int line_status = 0;
+        enum get_line_status line_status = 0;
 
+        puts(filepaths[i]);
         FILE *pfile = NULL;
         ram_t *ram = NULL;
         sym_tab_t *sym_tab = NULL;
         parser_t *parser = NULL;
-        size_t line_number = 1;
 
 
         if (file_status != OK)
@@ -97,11 +97,15 @@ int main(int argc, char const *argv[])
 
             if (LINE_TOO_LONG == line_status)
             {
+                #ifndef NDEBUG
+                puts("LINE_TOO_LONG");
+                #endif
                 line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN, " \v\n", ' ');
                 continue;
             }    
 
             line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN, " \v\n", ' ');
+            puts(line_buf);
             args_arr = FileLineToArgs(line_buf);
             if (NULL == args_arr)
             {
@@ -110,19 +114,14 @@ int main(int argc, char const *argv[])
                 return ERROR_STATUS;
             }
 
-            ParserFirstPass(parser, args_arr, line_number);
+            ParserFirstPass(parser, args_arr, -1);
             /* send to 1st pass */
        
         }
-        while (END_OF_FILE != status);
-
-
-        
-
-
+        while (END_OF_FILE != line_status);
     }
 
-    return 0;
+    return status;
 }
 
 static int CheckUsage(int num_filepaths, const char *filepaths[])
