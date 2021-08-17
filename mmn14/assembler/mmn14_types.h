@@ -5,6 +5,8 @@
 #define MAX_LINE_LEN (81)
 #endif
 
+#define SPACE_CHARS (" \v\n")
+
 typedef unsigned char byte;
 
 

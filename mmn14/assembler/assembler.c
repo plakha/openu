@@ -99,11 +99,11 @@ int main(int argc, char const *argv[])
                 #ifndef NDEBUG
                 puts("LINE_TOO_LONG");
                 #endif
-                line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN, " \v\n", ' ');
+                line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN, SPACE_CHARS, ' ');
                 continue;
             }    
 
-            line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN, " \v\n", ' ');
+            line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN, SPACE_CHARS, ' ');
             puts(line_buf);
             args_arr = FileLineToArgs(line_buf);
             if (NULL == args_arr)
