@@ -51,7 +51,7 @@ parser_t *ParserCreate(const char *source_file_name, ram_t *ram, sym_tab_t *sym_
 
     new_parser->ic = 0;
     new_parser->source_file_name = source_file_name;
-    new_parser->cur_line_num = 0;
+    new_parser->cur_line_num = 1;
 
     return new_parser;
 
@@ -793,16 +793,27 @@ static void ValidateLineArgs(parser_t *parser, dvec_t *args, enum statement_type
 
 }
 
-void ParserFirstPass(parser_t *parser, dvec_t *args, size_t line_number)
+void ParserFirstPass(parser_t *parser, dvec_t *args, size_t line_num)
 {
     enum statement_type statement_type = 0;
+    
+    #ifndef NDEBUG
+    {
+        int i = 0;
+        printf("ParserFirstPass, file line %d\n, line_number");
+        for (;i < DVECSize(args); ++i)
+        {
+            printf("%s ", DVECGetItemAddress(args, i));
+        }
+        puts("");
+    }
+    #endif
 
     assert(parser);
     assert(args);
-    assert(line_number > parser->cur_line_num);
 
-        
-    parser->cur_line_num = line_number;
+    (void)line_num;
+
     statement_type = WhatStatement(args, FALSE);
 
     ValidateLineArgs(parser, args, statement_type, FALSE);
@@ -811,56 +822,6 @@ void ParserFirstPass(parser_t *parser, dvec_t *args, size_t line_number)
     {
         FirstPassProcessLineArgs(parser, args);
     }
+
+    ++(parser->cur_line_num);
 }
-
-/*
-void FirstPass(char *args[], size_t line_num, int *file_status, sym_tab_t *sym_tab)
-{
-    enum statement kind_of_statement = CheckStatementKind(args);
-
-    switch (kind_of_statement)
-    {
-    case LABEL:
-        enum statement next_kind_of_statement CheckStatementKind(args + 1);
-        if (next_kind_of_statement == ERROR || next_kind_of_statement == LABEL);
-        {
-            *file_status = 1; 
-        }
-        else if (next_kind_of_statement == DIR)
-        {
-            *file_status = ValidateDirective(args);
-        }
-        else
-        {
-            *file_status = ValidateInstruction();
-        }
-        
-        if (0 == file_status)
-        {
-            UtilPushToSymTab(sym_tab, args + 1);
-            FirstPass(args + 1);
-        }
-
-        break;
-
-    case DIR:
-
-        break;
-
-
-    case ERROR:
-
-        break;
-
-
-    
-    
-    default:
-        if (0 == (*file_status = ValidateInstruction(args)))
-        {
-            PushInstructionToRam();
-        }
-        break;
-    }
-}
-*/

@@ -46,7 +46,9 @@ struct symbol
 
 sym_tab_t *SymTabCreate()
 {
-    return NULL;
+    sym_tab_t *new_sym_tab = malloc(sizeof(*new_sym_tab));
+
+    return new_sym_tab;
 }
 
 int HasSymbol(sym_tab_t *sym_tab, const char *label)

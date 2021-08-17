@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "mmn14_types.h": "c"
+        "mmn14_types.h": "c",
+        "parser.h": "c",
+        "ram.h": "c"
     }
 }

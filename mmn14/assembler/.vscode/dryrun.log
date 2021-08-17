@@ -1,12 +1,13 @@
 make --dry-run --always-make --keep-going --print-directory
 make: Entering directory `/Users/plakhota/Documents/clang/openu/mmn14/assembler'
-gcc -pedantic -Wall -ansi -c assembler.c
-gcc -pedantic -Wall -ansi -c dll.c
-gcc -pedantic -Wall -ansi -c dvec.c
-gcc -pedantic -Wall -ansi -c file.c
-gcc -pedantic -Wall -ansi -c parser.c
-gcc -pedantic -Wall -ansi -c ram.c
-gcc -pedantic -Wall -ansi -c sym_tab.c
-gcc -pedantic -Wall -o assembler assembler.o dll.o dvec.o file.o parser.o ram.o sym_tab.o
+gcc -pedantic -Wall -DNDEBUG -ansi -c assembler.c
+ 
+gcc -pedantic -Wall -DNDEBUG -ansi -c dll.c
+gcc -pedantic -Wall -DNDEBUG -ansi -c dvec.c
+gcc -pedantic -Wall -DNDEBUG -ansi -c file.c
+gcc -pedantic -Wall -DNDEBUG -ansi -c parser.c
+gcc -pedantic -Wall -DNDEBUG -ansi -c ram.c
+gcc -pedantic -Wall -DNDEBUG -ansi -c sym_tab.c
+gcc -pedantic -Wall -DNDEBUG -o assembler assembler.o dll.o dvec.o file.o parser.o ram.o sym_tab.o
 make: Leaving directory `/Users/plakhota/Documents/clang/openu/mmn14/assembler'
  

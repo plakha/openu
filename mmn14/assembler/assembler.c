@@ -44,7 +44,7 @@ int main(int argc, char const *argv[])
         ram_t *ram = NULL;
         sym_tab_t *sym_tab = NULL;
         parser_t *parser = NULL;
-        size_t line_number = 0;
+        size_t line_number = 1;
 
 
         if (file_status != OK)

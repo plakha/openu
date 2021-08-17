@@ -8,14 +8,19 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 # This program built for i386-apple-darwin11.3.0
  
 
-# Make data base, printed on Tue Aug 10 22:02:22 2021
+# Make data base, printed on Mon Aug 16 21:25:47 2021
 
 # Variables
 
+ 
 # automatic
 <D = $(patsubst %/,%,$(dir $<))
 # automatic
 ?F = $(notdir $?)
+# environment
+ELECTRON_NO_ATTACH_CONSOLE = 1
+# environment
+LC_CTYPE = UTF-8
 # environment
 VSCODE_LOG_NATIVE = false
 # automatic
@@ -36,18 +41,20 @@ VSCODE_NLS_CONFIG = {"locale":"en-us","availableLanguages":{},"_languagePackSupp
 _ = /usr/bin/make
 # makefile (from `makefile', line 1)
 MAKEFILE_LIST :=  makefile
-# makefile (from `makefile', line 3)
+# makefile (from `makefile', line 4)
 SOURCES = assembler.c dll.c dvec.c file.c parser.c ram.c sym_tab.c
 # environment
 VSCODE_VERBOSE_LOGGING = true
 # environment
-__CFBundleIdentifier = com.microsoft.VSCode
+__CFBundleIdentifier = com.apple.Terminal
 # environment
-VSCODE_IPC_HOOK_EXTHOST = /var/folders/m4/ngb7rcsx49346lh0jfqy9f3r0000gn/T/vscode-ipc-9fe3e7c6-e2bc-4ec0-b4d1-e8c1c4b71543.sock
+VSCODE_IPC_HOOK_EXTHOST = /var/folders/m4/ngb7rcsx49346lh0jfqy9f3r0000gn/T/vscode-ipc-c88f2c53-23a3-480f-bcb7-01dbac1fdbf6.sock
 # environment
-VSCODE_CWD = /
+VSCODE_CWD = /Users/plakhota/Documents/clang/openu/mmn14/assembler
 # environment
-PATH = /Library/Frameworks/Python.framework/Versions/3.9/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+PATH = /Library/Frameworks/Python.framework/Versions/3.9/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin
+# makefile (from `makefile', line 3)
+DEBUGCCFLAGS = -pedantic -Wall -g3 -O0
 # environment
 VSCODE_LOG_STACK = false
 # environment
@@ -55,7 +62,7 @@ ELECTRON_RUN_AS_NODE = 1
 # default
 .FEATURES := target-specific order-only second-expansion else-if archives jobserver check-symlink
 # environment
-SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.xkDrMJ4oEI/Listeners
+SSH_AUTH_SOCK = /private/tmp/com.apple.launchd.V8NaX8h7mP/Listeners
 # automatic
 %F = $(notdir $%)
 # environment
@@ -69,14 +76,16 @@ VSCODE_AMD_ENTRYPOINT = vs/workbench/services/extensions/node/extensionHostProce
 # environment
 HOME = /Users/plakhota
 # default
-MAKEFILEPATH = $(shell /usr/bin/xcode-select -print-path 2>/dev/null || echo /Developer)/Makefiles
+MAKEFILEPATH := /Applications/Xcode.app/Contents/Developer/Makefiles
+# environment
+VSCODE_CLI = 1
 # environment
 VSCODE_CODE_CACHE_PATH = /Users/plakhota/Library/Application Support/Code/CachedData/379476f0e13988d90fab105c5c19e7abc8b1dea8
 # environment
 LOGNAME = plakhota
 # environment
 APPLICATION_INSIGHTS_NO_DIAGNOSTIC_CHANNEL = true
-# makefile (from `makefile', line 5)
+# makefile (from `makefile', line 6)
 HEADERS = $(SOURCES:.c=.h)  mmn14_types.h
 # environment
 VSCODE_HANDLES_UNCAUGHT_ERRORS = true
@@ -89,7 +98,7 @@ MAKE = $(MAKE_COMMAND)
 # default
 MAKECMDGOALS := all
 # environment
-SHLVL = 1
+SHLVL = 3
 # makefile (from `makefile', line 1)
 CC = gcc
 # default
@@ -99,11 +108,15 @@ USER = plakhota
 # makefile
 .DEFAULT_GOAL := all
 # makefile (from `makefile', line 2)
-CCFLAGS = -pedantic -Wall
+CCFLAGS = -pedantic -Wall -DNDEBUG
+# environment
+TERM_SESSION_ID = 4399BEC5-07EB-4455-A053-EB105A3A572C
 # automatic
 %D = $(patsubst %/,%,$(dir $%))
 # default
-MAKE_COMMAND := /Library/Developer/CommandLineTools/usr/bin/make
+MAKE_COMMAND := /Applications/Xcode.app/Contents/Developer/usr/bin/make
+# environment
+TERM_PROGRAM = Apple_Terminal
 # default
 .VARIABLES := 
 # environment
@@ -119,7 +132,9 @@ MFLAGS = -Rrqp
 # automatic
 *D = $(patsubst %/,%,$(dir $*))
 # environment
-XPC_SERVICE_NAME = application.com.microsoft.VSCode.1333786.1333792
+TERM_PROGRAM_VERSION = 440
+# environment
+XPC_SERVICE_NAME = 0
 # automatic
 +D = $(patsubst %/,%,$(dir $+))
 # automatic
@@ -134,9 +149,9 @@ MAKEFILES :=
 VSCODE_BROWSER_CODE_LOADING = bypassHeatCheck
 # automatic
 <F = $(notdir $<)
-# makefile (from `makefile', line 8)
+# makefile (from `makefile', line 9)
 EXECUTABLE = assembler
-# makefile (from `makefile', line 7)
+# makefile (from `makefile', line 8)
 OBJDIR = obj
 # environment
 LC_ALL = C
@@ -148,14 +163,16 @@ SUFFIXES :=
 .INCLUDE_DIRS = /usr/local/include
 # environment
 MAKELEVEL := 0
-# makefile (from `makefile', line 6)
+# makefile (from `makefile', line 7)
 OBJECTS = $(SOURCES:.c=.o)
 # environment
 LANG = C
 # environment
-VSCODE_PID = 9536
+TERM = xterm-256color
+# environment
+VSCODE_PID = 26455
 # variable set hash-table stats:
-# Load=71/1024=7%, Rehash=0, Collisions=1/109=1%
+# Load=79/1024=8%, Rehash=0, Collisions=1/117=1%
 
 # Pattern-specific Variable Values
 
@@ -163,14 +180,14 @@ VSCODE_PID = 9536
 
 # Directories
 
-# . (device 16777221, inode 1232808): 22 files, no impossibilities.
+# . (device 16777222, inode 2506842): 21 files, no impossibilities.
 
-# 22 files, no impossibilities in 1 directories.
+# 21 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
 %.o: %.c assembler.h dll.h dvec.h file.h parser.h ram.h sym_tab.h  mmn14_types.h
-#  commands to execute (from `makefile', line 24):
+#  commands to execute (from `makefile', line 25):
 	$(CC) $(CCFLAGS) -ansi -c $<
 	
 
@@ -190,7 +207,7 @@ assembler.h:
 # Not a target:
 parser.h:
 #  Implicit rule search has been done.
-#  Last modified 2021-08-09 01:06:08
+#  Last modified 2021-08-16 01:18:48
 #  File has been updated.
 #  Successfully updated.
 # variable set hash-table stats:
@@ -209,13 +226,14 @@ all: assembler
 dll.o:
 #  Implicit rule search has not been done.
 #  Modification time never checked.
+ 
 #  File has not been updated.
 
 .PHONY: clean
 #  Implicit rule search has not been done.
 #  Modification time never checked.
 #  File has not been updated.
-#  commands to execute (from `makefile', line 27):
+#  commands to execute (from `makefile', line 28):
 	
 
 # Not a target:
@@ -237,15 +255,15 @@ debug: assembler
 #  Implicit rule search has not been done.
 #  Modification time never checked.
 #  File has not been updated.
-# makefile (from `makefile', line 17)
-# CCFLAGS += -DDEBUG -g3 -O0
+# makefile (from `makefile', line 18)
+# CCFLAGS = $(DEBUGCCFLAGS)
 # variable set hash-table stats:
-# Load=1/32=3%, Rehash=0, Collisions=0/2=0%
+# Load=1/32=3%, Rehash=0, Collisions=0/1=0%
 
 # Not a target:
 dvec.h:
 #  Implicit rule search has been done.
-#  Last modified 2021-08-05 19:20:49
+#  Last modified 2021-08-14 14:26:59
 #  File has been updated.
 #  Successfully updated.
 # variable set hash-table stats:
@@ -260,7 +278,7 @@ ram.o:
 # Not a target:
 makefile:
 #  Implicit rule search has been done.
-#  Last modified 2021-08-08 19:40:47
+#  Last modified 2021-08-16 09:09:43
 #  File has been updated.
 #  Successfully updated.
 # variable set hash-table stats:
@@ -269,7 +287,7 @@ makefile:
 # Not a target:
 mmn14_types.h:
 #  Implicit rule search has been done.
-#  Last modified 2021-08-09 01:06:08
+#  Last modified 2021-08-13 12:39:55
 #  File has been updated.
 #  Successfully updated.
 # variable set hash-table stats:
@@ -305,7 +323,7 @@ assembler.o: assembler.c assembler.h dll.h dvec.h file.h parser.h ram.h sym_tab.
 # ? := assembler.c assembler.h dll.h dvec.h file.h parser.h ram.h sym_tab.h mmn14_types.h
 # variable set hash-table stats:
 # Load=8/32=25%, Rehash=0, Collisions=1/13=8%
-#  commands to execute (from `makefile', line 24):
+#  commands to execute (from `makefile', line 25):
 	$(CC) $(CCFLAGS) -ansi -c $<
 	
 
@@ -316,11 +334,10 @@ assembler: assembler.o dll.o dvec.o file.o parser.o ram.o sym_tab.o
 #  Needs to be updated (-q is set).
 # variable set hash-table stats:
 # Load=0/32=0%, Rehash=0, Collisions=0/4=0%
-#  commands to execute (from `makefile', line 21):
+#  commands to execute (from `makefile', line 22):
 	$(CC) $(CCFLAGS) -o $@ $^
 	
 
- 
 # Not a target:
 parser.o:
 #  Implicit rule search has not been done.
@@ -347,7 +364,7 @@ clean:
 #  Implicit rule search has not been done.
 #  File does not exist.
 #  File has not been updated.
-#  commands to execute (from `makefile', line 29):
+#  commands to execute (from `makefile', line 30):
 	rm *.o assembler
 	
 
@@ -367,6 +384,7 @@ ram.h:
 # Load=0/32=0%, Rehash=0, Collisions=0/0=0%
 
 # Not a target:
+ 
 dvec.o:
 #  Implicit rule search has not been done.
 #  Modification time never checked.
@@ -375,7 +393,7 @@ dvec.o:
 # Not a target:
 assembler.c:
 #  Implicit rule search has been done.
-#  Last modified 2021-08-09 01:06:08
+#  Last modified 2021-08-12 00:54:21
 #  File has been updated.
 #  Successfully updated.
 # variable set hash-table stats:
@@ -384,7 +402,7 @@ assembler.c:
 # Not a target:
 file.h:
 #  Implicit rule search has been done.
-#  Last modified 2021-08-07 10:50:09
+#  Last modified 2021-08-12 00:54:21
 #  File has been updated.
 #  Successfully updated.
 # variable set hash-table stats:
@@ -403,6 +421,6 @@ file.h:
 # strcache size: total = 4096 / max = 4096 / min = 4096 / avg = 4096
 # strcache free: total = 4087 / max = 4087 / min = 4087 / avg = 4087
 
-# Finished Make data base on Tue Aug 10 22:02:22 2021
+# Finished Make data base on Mon Aug 16 21:25:47 2021
 
  

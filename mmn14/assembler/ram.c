@@ -1,4 +1,4 @@
-#include "stddef.h" /* NULL */
+#include "stdlib.h" /* malloc */
 
 #include "mmn14_types.h"
 
@@ -14,7 +14,9 @@ struct ram
 
 ram_t *RAMCreate()
 {
-    return NULL;
+    ram_t *new_ram = malloc(sizeof(*new_ram));
+
+    return new_ram;
 }
 
 void RAMDestroy(ram_t *ram)
