@@ -928,13 +928,13 @@ static void ValidateLineArgs(parser_t *parser, dvec_t *args, enum statement_type
 
             printf("Error in source file %s, line %ld: the label %s is followed by another label %s, which is not allowed \n", 
             parser->source_file_name, parser->cur_line_num, label1, label2);
+
+            is_line_ok = FALSE;
         }
         else
         {
-            enum statement_type labeled_statement = ERROR;
-
-            labeled_statement = WhatStatement(args, TRUE); /* check statement after the label */
-            ValidateLineArgs(parser, args, labeled_statement, is_under_label);
+            enum statement_type labeled_statement = WhatStatement(args, TRUE); /* check statement after the label */
+            ValidateLineArgs(parser, args, labeled_statement, TRUE);
         }
         break;
 
