@@ -12,6 +12,7 @@
 #define MAX_FILENAME_LEN (255)
 
 enum status {OK = 0, ERROR_STATUS};
+enum {FALSE = 0, TRUE};
 
 static const char *param_extension = ".as";
 
@@ -37,7 +38,7 @@ int main(int argc, char const *argv[])
     for (i = 1; i < num_filepaths; ++i)
     {
         int file_status = CheckFileName(filepaths[i]);
-        char filename[MAX_FILENAME_LEN] = {'\0'};
+        char filename[MAX_FILENAME_LEN] = {'\0'}; /* will be used to store output filname via GetFileName() */
         enum get_line_status line_status = 0;
 
         FILE *pfile = NULL;
@@ -52,8 +53,6 @@ int main(int argc, char const *argv[])
         }
 
 
-        GetFileName(filepaths[i], filename);
-
         pfile = fopen(filepaths[i], "r");
         if (NULL == pfile)
         {
@@ -64,7 +63,7 @@ int main(int argc, char const *argv[])
         sym_tab = SymTabCreate();
         if(!sym_tab)
         {
-            fprintf(stderr, "FATAL ERROR: Couldn't allocate memory, while running line %d in file %s\n", __LINE__, __FILE__);
+            fprintf(stderr, "MEMORY ERROR: Couldn't allocate memory, while running line %d in file %s\n", __LINE__, __FILE__);
 
             return ERROR;
         }
@@ -73,7 +72,7 @@ int main(int argc, char const *argv[])
         if(!sym_tab || !ram)
         {
             RAMDestroy(ram);
-            fprintf(stderr, "FATAL ERROR: Couldn't allocate memory, while running line %d in file %s\n", __LINE__, __FILE__);
+            fprintf(stderr, "MEMORY ERROR: Couldn't allocate memory, while running line %d in file %s\n", __LINE__, __FILE__);
 
             return ERROR;
         }
@@ -108,7 +107,7 @@ int main(int argc, char const *argv[])
             args_arr = FileLineToArgs(line_buf);
             if (NULL == args_arr)
             {
-                fprintf(stderr, "FATAL ERROR: could not allocate memory while running line %d in %s/n", __LINE__, __FILE__);
+                fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", __LINE__, __FILE__);
         
                 return ERROR_STATUS;
             }
@@ -118,7 +117,23 @@ int main(int argc, char const *argv[])
        
         }
         while (END_OF_FILE != line_status);
+
+        if (!ParserIsSyntaxCorrupt(parser))
+        {
+            
+            /*
+            while
+            {
+                second pass
+            }
+
+            create output
+             */
+        }
     }
+
+    ParserDestroy(parser, TRUE);
+    parser = NULL;
 
     return status;
 }

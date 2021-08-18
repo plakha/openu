@@ -21,5 +21,8 @@ ram_t *RAMCreate()
 
 void RAMDestroy(ram_t *ram)
 {
-    (void)ram;
+    assert(ram);
+
+    free(ram);
+    ram = NULL;
 }

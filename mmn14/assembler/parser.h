@@ -19,7 +19,9 @@ parser_t *ParserCreate(const char *source_file_name, ram_t *ram, sym_tab_t *sym_
 
 void ParserFirstPass(parser_t *parser, dvec_t *args, size_t line_number);
 
-void ParserDestroy(parser_t *parser);
+int ParserIsSyntaxCorrupt(const parser_t * parser);
+
+void ParserDestroy(parser_t *parser, int should_destroy_passed_entities);
 
 #endif /* PARSER_H */
 

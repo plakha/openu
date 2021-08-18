@@ -24,7 +24,7 @@ struct  parser /* file parser */
     
     const char *source_file_name;
     ram_t *ram;
-    sym_tab_t *sym_tam;
+    sym_tab_t *sym_tab;
     int is_file_syntax_corrupt;  /* default FALSE */
 };
 
@@ -46,20 +46,35 @@ parser_t *ParserCreate(const char *source_file_name, ram_t *ram, sym_tab_t *sym_
     new_parser = malloc(sizeof(*new_parser));
     if(!new_parser)
     {
-        
+        fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", __LINE__, __FILE__);
+
+        return NULL;
     }
 
     new_parser->ic = 0;
     new_parser->source_file_name = source_file_name;
     new_parser->cur_line_num = 1;
+    new_parser->ram = ram;
+    new_parser->sym_tab = sym_tab;
 
     return new_parser;
-
 }
 
-void ParserDestroy(parser_t *parser)
+void ParserDestroy(parser_t *parser, int should_destroy_passed_entities)
 {
-    (void)parser;
+    assert(parser);
+
+    if (should_destroy_passed_entities)
+    {
+        RAMDestroy(parser->ram);
+        parser->ram = NULL;
+
+        SymTabDestroy(parser->sym_tab);
+        parser->sym_tab = NULL;
+    }
+
+    free(parser);
+    parser = NULL;
 }
 
 
@@ -961,4 +976,14 @@ void ParserFirstPass(parser_t *parser, dvec_t *args, size_t line_num)
     }
 
     ++(parser->cur_line_num);
+}
+
+int ParserIsSyntaxCorrupt(const parser_t * parser)
+{
+    assert(parser);
+
+    /* Because we only assign enum of 0 or 1 to this lvalue  */
+    assert((FALSE == parser->is_file_syntax_corrupt) || (TRUE == parser->is_file_syntax_corrupt) 
+
+    return parser->is_file_syntax_corrupt;
 }
