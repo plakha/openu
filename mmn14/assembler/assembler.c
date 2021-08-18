@@ -130,10 +130,10 @@ int main(int argc, char const *argv[])
             create output
              */
         }
-    }
 
-    ParserDestroy(parser, TRUE);
-    parser = NULL;
+        ParserDestroy(parser, TRUE);
+        parser = NULL;
+    }
 
     return status;
 }

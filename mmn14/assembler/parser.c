@@ -314,7 +314,7 @@ static int IsStringLegalAscizArg(const char *str)
     return TRUE;
 }
 
-static IsValidateDirAscii(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+static int IsValidateDirAscii(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
     /*
         exactly size 2
@@ -340,7 +340,8 @@ static IsValidateDirAscii(parser_t *parser, const dvec_t *arg_arr, int is_under_
             parser->source_file_name, parser->cur_line_num, arg0);
     }
 
-    if(arg_size_dir_asciz != DVECSize(arg_arr) - first_elem_index, !IsStringLegalAscizArg(arg1))
+    if((arg_size_dir_asciz != (DVECSize(arg_arr) - first_elem_index)) 
+    || !IsStringLegalAscizArg(arg1))
     {
          printf("ERROR in source file %s, line %ld: expected 1 and only one, printable, `\"`-delimited argument for %s statement\n", 
             parser->source_file_name, parser->cur_line_num, arg0);
@@ -726,16 +727,16 @@ static int IsStringLabel(const char *str, int is_declaration)
         }
     }
 
-    for (i = 0; NULL != keywords + i ; ++i)
+    for (i = 0; NULL != keywords[i] ; ++i)
     {
         const size_t keyword_len = strlen(keywords[i]);
         /* e.g. "add: [...]" is illegal label declaration. strncpm("add", "add:", 3) returns 0 */
-        if (keyword_len == (str_len + 1) && !strncmp(keywords[i], str_modified_copy, keyword_len))
+        if ((keyword_len == (str_len - 1)) 
+        && 0 == strncmp(keywords[i], str_modified_copy, keyword_len))
         {
             return FALSE;
         }
     }
-    
 
     return TRUE;
     
@@ -899,12 +900,24 @@ static void ValidateLineArgs(parser_t *parser, dvec_t *args, enum statement_type
         break;
 
     case DIR_QUALIF:
+        if (!IsValidateDirQualif(parser, args, is_under_label))
+        {
+            is_line_ok = FALSE;
+        }
         break;
 
     case DIR_DEC:
+        if (!IsValidateDirDec(parser, args, is_under_label))
+        {
+            is_line_ok = FALSE;
+        }
         break;
 
     case DIR_ASCII:
+        if (!IsValidateDirAscii(parser, args, is_under_label))
+        {
+            is_line_ok = FALSE;
+        }
         break;
 
     case LABEL:
@@ -920,9 +933,7 @@ static void ValidateLineArgs(parser_t *parser, dvec_t *args, enum statement_type
         {
             enum statement_type labeled_statement = ERROR;
 
-            assert(TRUE == is_under_label);
-
-            labeled_statement = WhatStatement(args, is_under_label); /* check statement after the label */
+            labeled_statement = WhatStatement(args, TRUE); /* check statement after the label */
             ValidateLineArgs(parser, args, labeled_statement, is_under_label);
         }
         break;
@@ -983,7 +994,7 @@ int ParserIsSyntaxCorrupt(const parser_t * parser)
     assert(parser);
 
     /* Because we only assign enum of 0 or 1 to this lvalue  */
-    assert((FALSE == parser->is_file_syntax_corrupt) || (TRUE == parser->is_file_syntax_corrupt) 
+    assert((FALSE == parser->is_file_syntax_corrupt) || (TRUE == parser->is_file_syntax_corrupt));
 
     return parser->is_file_syntax_corrupt;
 }
