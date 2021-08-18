@@ -125,8 +125,9 @@ static int IsStringNum(const char *str)
 
     assert(str);
 
-
-    if (!isdigit(*runner) && '+' != *runner && '-' != *runner)
+    if ((!isdigit(*runner)) 
+    && ('+' != *runner) 
+    && ('-' != *runner))
     {
         return FALSE;
     }
@@ -139,6 +140,8 @@ static int IsStringNum(const char *str)
         {
             return FALSE;
         }
+
+        ++runner;
     }
     
     return TRUE;
@@ -674,8 +677,8 @@ static int IsValidateIArithLogMem(parser_t *parser, const dvec_t *arg_arr, int i
 
         return FALSE;
     }
-
-    return 1;
+   
+    return TRUE;
 }
 
 
@@ -692,7 +695,7 @@ static int IsStringLabel(const char *str, int is_declaration)
     static const char *keywords[] = {"add", "sub", "and", "or", "nor", "move", "mvhi", "mvlo", "addi", "subi", "andi", "ori", "nori", "bne", "beq", 
     "blt", "bgt", "lb", "sb", "lw", "sw", "lh", "sh", "jmp", "la", "call", "stop", NULL};
     char str_modified_copy[MAX_LABEL_SIZE] = {'\0'};
-
+    
     assert(str);
 
     strcpy(str_modified_copy, str);
@@ -701,6 +704,8 @@ static int IsStringLabel(const char *str, int is_declaration)
         strcat(str_modified_copy, ":");
     }
 
+    printf("orig: %s, modif: %s, is_declaration=%d", str, str_modified_copy, is_declaration);
+
     str_len = strlen(str_modified_copy);
 
     /* str_len - 1 because label declaration ends with ':' */
@@ -708,18 +713,18 @@ static int IsStringLabel(const char *str, int is_declaration)
     {
         return FALSE;
     }
-
+/*
     if (str_modified_copy[0] < 'A' || str_modified_copy[0] > 'Z')
     {
         return FALSE;
     }
-
+*/
     if (':' != str_modified_copy[str_len - 1])
     {
         return FALSE;
     }
 
-    for (i = 1; i < str_len - 1; ++i)
+    for (i = 0; i < str_len - 1; ++i)
     {
         if (!isalnum(str_modified_copy[i]))
         {
@@ -920,13 +925,13 @@ static void ValidateLineArgs(parser_t *parser, dvec_t *args, enum statement_type
         }
         break;
 
-    case LABEL:
+    case LABEL:       
         if (is_under_label)
         {
             const char *label1 = (const char *) DVECGetItemAddress(args, 0); 
             const char *label2 = (const char *) DVECGetItemAddress(args, 1); 
 
-            printf("Error in source file %s, line %ld: the label %s is followed by another label %s, which is not allowed \n", 
+            printf("ERROR in source file %s, line %ld: the label %s is followed by another label %s, which is not allowed \n", 
             parser->source_file_name, parser->cur_line_num, label1, label2);
 
             is_line_ok = FALSE;
@@ -934,12 +939,16 @@ static void ValidateLineArgs(parser_t *parser, dvec_t *args, enum statement_type
         else
         {
             enum statement_type labeled_statement = WhatStatement(args, TRUE); /* check statement after the label */
+            
             ValidateLineArgs(parser, args, labeled_statement, TRUE);
         }
         break;
 
     case ERROR:
         is_line_ok = FALSE;
+
+         printf("ERROR in source file %s, line %ld: unknown statement starting from %s\n", 
+            parser->source_file_name, parser->cur_line_num, (const char *) DVECGetItemAddress(args, 0));
 
         break;
 
