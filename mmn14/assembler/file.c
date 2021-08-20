@@ -83,7 +83,7 @@ dvec_t *FileLineToArgs(const char line[])
     dvec_t *args = DVECCreate(sizeof(buf), N_ARGS_EXPECTED);
     if (NULL == args)
     {
-        fprintf(stderr, "FATAL ERROR: could not allocate memory while running line %d in %s/n", __LINE__, __FILE__);
+        fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", __LINE__, __FILE__);
 
         return NULL;
     }

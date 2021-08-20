@@ -56,7 +56,7 @@ int main(int argc, char const *argv[])
         pfile = fopen(filepaths[i], "r");
         if (NULL == pfile)
         {
-            fprintf(stderr, "ERROR: The file %s doesn't exist\n", filepaths[i]);
+            printf("ERROR: The file %s doesn't exist\n", filepaths[i]);
             continue;
         }
 
