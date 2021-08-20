@@ -1,4 +1,5 @@
-MAIN:	add		$30,$5,$9
+add		$30,$5,$9                                                                  
+MAIN:   add             $30,$5,$9
 LOOP:	ori		$9,-5,$2
 		la		val1
 		jmp		Next

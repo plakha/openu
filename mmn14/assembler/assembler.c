@@ -9,6 +9,7 @@
 #include "sym_tab.h"
 #include "parser.h"
 
+
 #define MAX_FILENAME_LEN (255)
 
 enum status {OK = 0, ERROR_STATUS};
@@ -95,15 +96,16 @@ int main(int argc, char const *argv[])
 
             if (LINE_TOO_LONG == line_status)
             {
-                #ifndef NDEBUG
-                puts("LINE_TOO_LONG");
-                #endif
-                line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN, SPACE_CHARS, ' ');
+                printf("WARNING: statement must no longer than %d characters\n",  MAX_LINE_LEN - 1);
+                line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN - 1, SPACE_CHARS, ' ');
+
                 continue;
             }    
 
-            line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN, SPACE_CHARS, ' ');
+            line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN - 1, SPACE_CHARS, ' ');
+            #ifndef NDEBUG
             puts(line_buf);
+            #endif
             args_arr = FileLineToArgs(line_buf);
             if (NULL == args_arr)
             {
@@ -113,10 +115,14 @@ int main(int argc, char const *argv[])
             }
 
             ParserFirstPass(parser, args_arr, -1);
-            /* send to 1st pass */
-       
+
+            FileFreeArgs(args_arr);       
         }
         while (END_OF_FILE != line_status);
+
+        #ifndef NDEBUG
+        printf("Ended first run. IC=%lu , LineCount=%lu, is syntax corrupt? %d \n", ParserGetIC(parser), ParserGetCurLineNum(parser), ParserIsSyntaxCorrupt(parser));
+        #endif
 
         if (!ParserIsSyntaxCorrupt(parser))
         {
@@ -133,6 +139,8 @@ int main(int argc, char const *argv[])
 
         ParserDestroy(parser, TRUE);
         parser = NULL;
+        fclose(pfile);
+        pfile = NULL;
     }
 
     return status;

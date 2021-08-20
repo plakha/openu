@@ -97,7 +97,6 @@ dvec_t *FileLineToArgs(const char line[])
         
         if (',' == *left)
         {
-            puts(",");
             DVECPushBack(args, strcpy(buf, ","));
             ++left;
             
@@ -121,4 +120,11 @@ dvec_t *FileLineToArgs(const char line[])
     
     return args;
     
+}
+
+void FileFreeArgs(dvec_t *dvec)
+{
+    assert(dvec);
+
+    DVECDestroy(dvec);
 }

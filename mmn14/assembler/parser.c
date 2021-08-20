@@ -16,6 +16,7 @@
 
 enum {FALSE = 0, TRUE};
 
+
 struct  parser /* file parser */
 {
     size_t ic;
@@ -77,11 +78,35 @@ void ParserDestroy(parser_t *parser, int should_destroy_passed_entities)
     parser = NULL;
 }
 
-
+/* Fill symbol table */
 void FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
 {
-
+    /*
+        if arg0 label:
+            CreateSymbol(arg0)
+            SymVolSetFlags(data/code/)
+            if data:    
+                pushData()
+            pushToSymTab
+    */
 }
+
+/*
+PushData(){
+    if asciz
+    {
+        for ch in str
+            pusg to Symbol->dvec
+
+    }
+    id /dh/fw/db
+    {
+
+    }
+    for 
+}
+
+*/
 
 /* 
     return registry index (0 to 31, incl.) 
@@ -156,7 +181,7 @@ static void UtilPushToSymTab(parser_t *parser_data, sym_tab_t *sym_tab, char *st
 }
 
 /* e.g.  .dh 1, 2, 3,3 */
-static int IsValidateDirDec(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+static int IsValidateDirDec(const parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
     static const size_t arg_min_size_dir_dec = 2;
     const size_t first_elem_index = is_under_label ? 1 :0;
@@ -223,7 +248,7 @@ static int IsValidateDirDec(parser_t *parser, const dvec_t *arg_arr, int is_unde
 }
 
 /* check if the directive is .extern or .entry */
-static int IsValidateDirQualif(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+static int IsValidateDirQualif(const parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
     static const size_t arg_size_dir_qualif = 2;
     const size_t first_elem_index = is_under_label ? 1 :0;
@@ -316,7 +341,7 @@ static int IsStringLegalAscizArg(const char *str)
     return TRUE;
 }
 
-static int IsValidateDirAscii(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+static int IsValidateDirAscii(const parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
     /*
         exactly size 2
@@ -355,7 +380,7 @@ static int IsValidateDirAscii(parser_t *parser, const dvec_t *arg_arr, int is_un
 }
 
 /* e.g. add $1, $4, $1 */
-static int IsValidateR3(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+static int IsValidateR3(const parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
     static const size_t arg_size_r3 = 6;
     const size_t first_elem_index = is_under_label ? 1 :0;
@@ -397,7 +422,6 @@ static int IsValidateR3(parser_t *parser, const dvec_t *arg_arr, int is_under_la
 
     if (!IsStringRegistry(arg1) || !IsStringRegistry(arg3) || !IsStringRegistry(arg5))
     {
-        parser->is_file_syntax_corrupt = TRUE;
         printf("ERROR in source file %s, line %ld: expecting legal registries as arguments for %s statement\n", 
             parser->source_file_name, parser->cur_line_num, arg0);
 
@@ -408,7 +432,7 @@ static int IsValidateR3(parser_t *parser, const dvec_t *arg_arr, int is_under_la
 }
 
 /* e.g. move/mvhi/mvlo $23, $2 */
-static int IsValidateR2(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+static int IsValidateR2(const parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
     static const size_t arg_size_r2 = 4; /* incl "," */
     const char *arg0 = NULL;
@@ -437,7 +461,6 @@ static int IsValidateR2(parser_t *parser, const dvec_t *arg_arr, int is_under_la
 
     if (DVECSize(arg_arr) - first_elem_index != arg_size_r2 || strcmp(arg2, COMMA_STR))
     {
-        parser->is_file_syntax_corrupt = TRUE;
         printf("ERROR in source file %s, line %ld: expected 2 comma-separated arguments for %s statement\n", 
             parser->source_file_name, parser->cur_line_num, arg0);
 
@@ -446,7 +469,6 @@ static int IsValidateR2(parser_t *parser, const dvec_t *arg_arr, int is_under_la
 
     if (!IsStringRegistry(arg1) || !IsStringRegistry(arg3))
     {
-        parser->is_file_syntax_corrupt = TRUE;
         printf("Error in source file %s, line %ld: expecting legal registries as arguments for %s statement\n", 
             parser->source_file_name, parser->cur_line_num, arg0);
 
@@ -458,7 +480,7 @@ static int IsValidateR2(parser_t *parser, const dvec_t *arg_arr, int is_under_la
 }
 
 /* stop only*/
-static int IsValidateJ0(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+static int IsValidateJ0(const parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
     static const size_t arg_size_j0 = 1;
     const size_t first_elem_index = is_under_label ? 1 :0;
@@ -473,7 +495,6 @@ static int IsValidateJ0(parser_t *parser, const dvec_t *arg_arr, int is_under_la
 
     if (DVECSize(arg_arr) - first_elem_index != arg_size_j0)
     {
-        parser->is_file_syntax_corrupt = TRUE;
         printf("Error in source file %s, line %ld: expected 0 arguments for %s statement\n", 
             parser->source_file_name, parser->cur_line_num, arg0);
 
@@ -487,7 +508,7 @@ static int IsValidateJ0(parser_t *parser, const dvec_t *arg_arr, int is_under_la
 }
 
 /*  la label ; call label */
-static int IsValidateJ1Label(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+static int IsValidateJ1Label(const parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
     static const size_t arg_size_j1 = 2;
     const size_t first_elem_index = is_under_label ? 1 :0;
@@ -505,7 +526,6 @@ static int IsValidateJ1Label(parser_t *parser, const dvec_t *arg_arr, int is_und
 
     if (DVECSize(arg_arr) - first_elem_index != arg_size_j1)
     {
-        parser->is_file_syntax_corrupt = TRUE;
         printf("Error in source file %s, line %ld: expected 1 arguments for %s statement\n", 
             parser->source_file_name, parser->cur_line_num, arg0);
 
@@ -514,7 +534,6 @@ static int IsValidateJ1Label(parser_t *parser, const dvec_t *arg_arr, int is_und
 
     if (!IsStringLabel(arg1, FALSE))
     {
-        parser->is_file_syntax_corrupt = TRUE;
         printf("Error in source file %s, line %ld: expecting a legal label as argument for %s statement\n", 
         parser->source_file_name, parser->cur_line_num, arg0);
 
@@ -525,7 +544,7 @@ static int IsValidateJ1Label(parser_t *parser, const dvec_t *arg_arr, int is_und
 }
 
 /* jmp only */
-static int IsValidateJ1Arg(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+static int IsValidateJ1Arg(const parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
     static const size_t arg_size_j1 = 2;
     const size_t first_elem_index = is_under_label ? 1 :0;
@@ -563,7 +582,7 @@ static int IsValidateJ1Arg(parser_t *parser, const dvec_t *arg_arr, int is_under
 /*     if (!strcmp(args0, "bne") || !strcmp(args0, "beq") || !strcmp(args0, "blt") || !strcmp(args0, "bgt"))
 e.g blt $5, $24, loop 
  */
-static int IsValidateICond(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+static int IsValidateICond(const parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
     static const size_t arg_size_i = 6;
     const size_t first_elem_index = is_under_label ? 1 : 0;
@@ -627,7 +646,7 @@ if (!strcmp(args0, "addi") || !strcmp(args0, "subi") || !strcmp(args0, "andi")
     e.g lh $9, 34, $2
 
 */
-static int IsValidateIArithLogMem(parser_t *parser, const dvec_t *arg_arr, int is_under_label)
+static int IsValidateIArithLogMem(const parser_t *parser, const dvec_t *arg_arr, int is_under_label)
 {
     static const size_t arg_size_i = 6;
     const size_t first_elem_index = is_under_label ? 1 : 0;
@@ -755,11 +774,15 @@ static enum statement_type WhatStatement(const dvec_t *args, int is_under_label)
     len_args = DVECSize(args) - is_under_label ? 1 : 0;
     if (0 == len_args)
     {
-        /* empty statement (e.g "MYLABEL:") */
-        return ERROR;
+        /*
+        {""} is legal
+        {"LABEL:", ""} is illegal
+        */
+        return is_under_label ? ERROR : BLANK;
     }
 
     args0 = (const char *) DVECGetItemAddress(args, is_under_label ? 1 : 0);
+
 
     if (!strcmp(args0, "add") || !strcmp(args0, "sub") || !strcmp(args0, "and") || !strcmp(args0, "or") || !strcmp(args0, "nor"))
     {
@@ -825,7 +848,7 @@ static enum statement_type WhatStatement(const dvec_t *args, int is_under_label)
         return COMMENT;
     }
 
-    if (isspace(*args0))
+    if ('\0' == *args0 || isspace(*args0))
     {
         #ifndef NDEBUG
         const char *space_checker = args0;
@@ -835,6 +858,7 @@ static enum statement_type WhatStatement(const dvec_t *args, int is_under_label)
             ++space_checker;
         }
         #endif
+        puts("HERE!");
 
         return BLANK;
     }
@@ -962,9 +986,10 @@ static void ValidateLineArgs(parser_t *parser, dvec_t *args, enum statement_type
         break;
     }
 
-    if (!parser->is_file_syntax_corrupt)
+    if (!is_line_ok)
     {
-        parser->is_file_syntax_corrupt = is_line_ok;
+
+        parser->is_file_syntax_corrupt = TRUE;
     }
 
 }
@@ -976,7 +1001,7 @@ void ParserFirstPass(parser_t *parser, dvec_t *args, size_t line_num)
     #ifndef NDEBUG
     {
         int i = 0;
-        printf("line num: %lu , ic=%lu", parser->cur_line_num, parser->ic);
+        printf("line num: %lu , ic=%lu, syntax corrupt? %d", parser->cur_line_num, parser->ic, parser->is_file_syntax_corrupt);
         for (;i < DVECSize(args); ++i)
         {
            printf("|%s| ", (const char *)DVECGetItemAddress(args, i));
@@ -1010,4 +1035,40 @@ int ParserIsSyntaxCorrupt(const parser_t * parser)
     assert((FALSE == parser->is_file_syntax_corrupt) || (TRUE == parser->is_file_syntax_corrupt));
 
     return parser->is_file_syntax_corrupt;
+}
+
+size_t ParserGetCurLineNum(const parser_t *parser)
+{
+    assert(parser);
+
+    return parser->cur_line_num;
+}
+
+
+size_t ParserGetIC(const parser_t *parser)
+{
+    assert(parser);
+
+    return parser->ic;
+}
+
+const char *ParserGetFileName(const parser_t *parser)
+{
+    assert(parser);
+    assert(parser->source_file_name);
+
+    return parser->source_file_name;
+}
+
+int ParserFailParser(parser_t *parser)
+{
+    int ret = 0;
+
+    assert(parser);
+
+    ret = ParserIsSyntaxCorrupt(parser);
+
+    parser->is_file_syntax_corrupt = TRUE;
+
+    return ret;
 }

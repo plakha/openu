@@ -28,6 +28,8 @@ oid FilePromoteLineCounter(size_t *input_line_count, enum get_line_status prev_l
 
 dvec_t *FileLineToArgs(const char line[]);
 
+void FileFreeArgs(dvec_t *dvec);
+
 
 /* TODO
 1. Maybe keep the whole text in a vector of buf[MAX_LINE]? Reuse buffer from mman 12 (accomodate to type char[MAX_LINE]) It may be easier to map. Why? All the symbols will be in one place, so the memory can be freed in the end.

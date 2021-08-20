@@ -2,6 +2,8 @@
     "files.associations": {
         "mmn14_types.h": "c",
         "parser.h": "c",
-        "ram.h": "c"
+        "ram.h": "c",
+        "file.h": "c",
+        "assert.h": "c"
     }
 }
