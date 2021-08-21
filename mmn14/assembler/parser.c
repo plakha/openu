@@ -47,7 +47,8 @@ parser_t *ParserCreate(const char *source_file_name, ram_t *ram, sym_tab_t *sym_
     new_parser = malloc(sizeof(*new_parser));
     if(!new_parser)
     {
-        fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", __LINE__, __FILE__);
+        fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
+        __LINE__, __FILE__);
 
         return NULL;
     }
@@ -78,35 +79,6 @@ void ParserDestroy(parser_t *parser, int should_destroy_passed_entities)
     parser = NULL;
 }
 
-/* Fill symbol table */
-void FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
-{
-    /*
-        if arg0 label:
-            CreateSymbol(arg0)
-            SymVolSetFlags(data/code/)
-            if data:    
-                pushData()
-            pushToSymTab
-    */
-}
-
-/*
-PushData(){
-    if asciz
-    {
-        for ch in str
-            pusg to Symbol->dvec
-
-    }
-    id /dh/fw/db
-    {
-
-    }
-    for 
-}
-
-*/
 
 /* 
     return registry index (0 to 31, incl.) 
@@ -710,8 +682,10 @@ static int IsStringLabel(const char *str, int is_declaration)
     size_t str_len = -1;
     size_t i = 0;
     /* TODO consider comparing to "add:" rather then "add" - maybe more elegant */
-    static const char *keywords[] = {"add", "sub", "and", "or", "nor", "move", "mvhi", "mvlo", "addi", "subi", "andi", "ori", "nori", "bne", "beq", 
-    "blt", "bgt", "lb", "sb", "lw", "sw", "lh", "sh", "jmp", "la", "call", "stop", NULL};
+    static const char *keywords[] = {"add", "sub", "and", "or", "nor", "move", 
+    "mvhi", "mvlo", "addi", "subi", "andi", "ori", "nori", "bne", "beq", "blt", 
+    "bgt", "lb", "sb", "lw", "sw", "lh", "sh", "jmp", "la", "call", "stop", 
+    "asciz", "lb", "lh", "lw", "extern", "entry", NULL};
     char str_modified_copy[MAX_LABEL_SIZE] = {'\0'};
     
     assert(str);
@@ -993,6 +967,164 @@ static void ValidateLineArgs(parser_t *parser, dvec_t *args, enum statement_type
     }
 
 }
+
+static int IsInstruction(enum statement_type statement_type)
+{
+    return (R_3_ARG == statement_type) || (R_2_ARG == statement_type) 
+    || (J_0_ARG == statement_type) || (J_1_ARG == statement_type) || (J_1_LABEL == statement_type) 
+    || (I_COND == statement_type) || (I_ARITH_LOG_MEM == statement_type);
+}
+
+/* Fill symbol table with definitions and externs only!
+Because I want to keep dc in order.
+E.g. .entry mylabel may be defined before mylabel: [DEFINITION],\which will botch data count:
+for each definition, I keep the current sym_tab datacount. So on second pass the symbols address is 
+(total_ic * word_size + symbol_dc)
+*/
+static void FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
+{
+    enum statement_type statement_type= -1;
+    static const char *extern_dir_str = ".extern";
+    char *arg0 = NULL;
+    char *arg1 = NULL;
+
+    assert(parser);
+    assert(args);
+    assert(!parser->is_file_syntax_corrupt);
+
+    arg0 = DVECGetItemAddress(args, 0);
+    arg1 = DVECGetItemAddress(args, 1);
+
+    statement_type = WhatStatement(args, FALSE);
+
+    /*
+        if arg0 label:
+            CreateSymbol(arg0)
+            SymVolSetFlags(data/code/)
+            if data:    
+                pushData()
+            pushToSymTab
+    */
+   if (LABEL == statement_type)
+   {
+        enum statement_type labeled_statement_type = WhatStatement(args, TRUE);
+        char label_buf[MAX_LABEL_SIZE] = {'\0'};
+         
+        assert(IsStringLabel(arg0, TRUE));
+        assert(':' == arg0[strlen(arg0) - 1]);
+
+        /* keep the label without the terminating ':' */
+        strncpy(label_buf, arg0, strlen(arg0) - 1);
+
+        /*Case like Label: .lh 1, -7 */
+        if (DIR_DEC == labeled_statement_type || DIR_ASCII == labeled_statement_type)
+        {
+            if (SymTabHasSymbol(parser->sym_tab, arg0))
+            {
+                parser->is_file_syntax_corrupt = TRUE;
+
+                printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
+                parser->source_file_name, parser->cur_line_num, arg0);
+            }
+            else
+            {
+
+            }
+        }
+        /* Case like Label: add $1,$2,$3 */
+        else if (IsInstruction(labeled_statement_type))
+        {
+            if (SymTabHasSymbol(parser->sym_tab, arg0))
+            {
+                parser->is_file_syntax_corrupt = TRUE;
+
+                printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
+                parser->source_file_name, parser->cur_line_num, arg0);
+            }
+            else
+            {
+                symbol_t *new_symbol = SymTabAddSymbol(parser->sym_tab, label_buf);
+                
+                assert(strlen(label_buf) > 0);
+
+
+                /* set is_code, keep (ic - 1) */
+            }
+        }
+
+        /*Case like Label0: .extern Label1 */
+        else if (DIR_QUALIF == labeled_statement_type && 0 == strcmp(extern_dir_str, arg1))
+        {
+            const char *arg2 = DVECGetItemAddress(args, 2);
+
+            assert(IsStringLabel(arg2, FALSE));
+
+            if (SymTabHasSymbol(parser->sym_tab, arg2))
+            {
+                symbol_t *existing_symbol = SymTabGetSymbol(parser->sym_tab, arg2);
+                if (!SymTabIsExtern(parser->sym_tab, existing_symbol))
+                {
+                    parser->is_file_syntax_corrupt = TRUE;
+
+                    printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
+                    parser->source_file_name, parser->cur_line_num, arg2);
+                }
+
+            }
+            else 
+            {
+                /* add symbol, set extern */
+            }
+
+        }
+    
+   }
+   /* case like .extern Label */
+   else if (DIR_QUALIF == statement_type && 0 == strcmp(extern_dir_str, arg0))
+   {
+        assert(!IsStringLabel(arg0, TRUE));
+        assert(IsStringLabel(arg1, FALSE));
+        /* label is without the terminating ':' */
+        assert(':' != arg0[strlen(arg0) - 1]);
+
+
+        if (SymTabHasSymbol(parser->sym_tab, arg1))
+        {
+            
+            symbol_t *existing_symbol = SymTabGetSymbol(parser->sym_tab, arg1);
+            if (!SymTabIsExtern(parser->sym_tab, existing_symbol))
+            {
+                parser->is_file_syntax_corrupt = TRUE;
+
+                printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
+                parser->source_file_name, parser->cur_line_num, arg1);
+            }
+        }
+        else 
+        {
+            /* add symbol, set extern */
+        }
+
+   }
+}
+
+/*
+PushData(){
+    if asciz
+    {
+        for ch in str
+            pusg to Symbol->dvec
+
+    }
+    id /dh/fw/db
+    {
+
+    }
+    for 
+}
+
+*/
+
 
 void ParserFirstPass(parser_t *parser, dvec_t *args, size_t line_num)
 {

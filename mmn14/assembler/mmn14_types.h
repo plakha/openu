@@ -1,9 +1,10 @@
-#ifndef MMN14_TYPES
-#define MMN14_TYPES
-
 #ifndef MAX_LINE_LEN
 #define MAX_LINE_LEN (81)
 #endif
+
+#ifndef MMN14_TYPES
+#define MMN14_TYPES
+
 
 #define SPACE_CHARS (" \v\n")
 

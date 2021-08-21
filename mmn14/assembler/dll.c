@@ -227,7 +227,8 @@ int DLLForEach(it_t from, it_t to, act_f action, const void* params)
 
 	assert(NULL != from && NULL != to && NULL != action);
 
-	while(from != to && 0 == (ret = action(DLLGetData(from), params)))
+	/* while action is successful */
+	while((from != to) && (0 == (ret = action(DLLGetData(from), params))))
 	{
 		from = DLLNext(from);
 	}
