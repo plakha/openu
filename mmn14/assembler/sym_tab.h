@@ -1,11 +1,11 @@
 #ifndef SYM_TAB_H
 #define SYM_TAB_H
 
+#include "mmn14_types.h"
 
 typedef struct sym_tab sym_tab_t;
 typedef struct symbol symbol_t;
 
-enum data_type {VOID, BYTE, HALF_WORD, WORD, ASCIZ};
 
 sym_tab_t *SymTabCreate();
 

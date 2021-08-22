@@ -5,7 +5,6 @@
 
 #include "dll.h"
 #include "dvec.h"
-#include "mmn14_types.h"
 
 #include "sym_tab.h"
 

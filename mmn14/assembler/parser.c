@@ -975,6 +975,39 @@ static int IsInstruction(enum statement_type statement_type)
     || (I_COND == statement_type) || (I_ARITH_LOG_MEM == statement_type);
 }
 
+static enum data_type DirToDataElementType(const char *directive)
+{
+    static const char *lh = ".lh";
+    static const char *lw = ".lw";
+    static const char *lb = ".lb";
+    static const char *asciz = ".asciz";
+   
+    assert(directive);
+
+    if (0 == strcmp(directive, lh))
+    {
+        return HALF_WORD;
+    }
+    else if (0 == strcmp(directive, lw))
+    {
+        return WORD;
+    }
+    else if (0 == strcmp(directive, lb))
+    {
+        BYTE;
+    }
+    else if (0 == strcmp(directive, asciz))
+    {
+        return ASCIZ;
+    }
+    else
+    {
+        assert(FALSE);
+
+        return VOID;
+    }
+}
+
 /* Fill symbol table with definitions and externs only!
 Because I want to keep dc in order.
 E.g. .entry mylabel may be defined before mylabel: [DEFINITION],\which will botch data count:
@@ -1013,12 +1046,16 @@ static void FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
         assert(IsStringLabel(arg0, TRUE));
         assert(':' == arg0[strlen(arg0) - 1]);
 
-        /* keep the label without the terminating ':' */
+        /* copy the label without the terminating ':' */
         strncpy(label_buf, arg0, strlen(arg0) - 1);
 
         /*Case like Label: .lh 1, -7 */
         if (DIR_DEC == labeled_statement_type || DIR_ASCII == labeled_statement_type)
         {
+            const char *dir = arg1;
+
+            assert('.' == dir[0]);
+
             if (SymTabHasSymbol(parser->sym_tab, arg0))
             {
                 parser->is_file_syntax_corrupt = TRUE;
@@ -1028,7 +1065,12 @@ static void FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
             }
             else
             {
+                symbol_t *new_symbol =  SymTabAddSymbol(parser->sym_tab, label_buf);
+                SymTabSetDataVector(parser->sym_tab, new_symbol, DirToDataElementType(dir));
 
+                /*
+                    for dvec elems, push to Data
+                */
             }
         }
         /* Case like Label: add $1,$2,$3 */

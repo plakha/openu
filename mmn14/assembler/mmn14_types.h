@@ -28,4 +28,10 @@ word_t;
 
 typedef char line_arg_t[MAX_LINE_LEN]; /* string of MAX_LINE_LEN length */
 
+enum data_type {VOID, BYTE, HALF_WORD, WORD, ASCIZ};
+
+
+/* size_t ULONG_MAX = -1lu; */
+
+
 #endif /* MMN14_TYPES */
