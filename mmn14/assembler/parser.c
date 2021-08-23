@@ -1067,10 +1067,10 @@ static void FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
             {
                 symbol_t *new_symbol =  SymTabAddSymbol(parser->sym_tab, label_buf);
                 SymTabSetDataVector(parser->sym_tab, new_symbol, DirToDataElementType(dir));
+                size_t i = 0;
 
-                /*
-                    for dvec elems, push to Data
-                */
+                for (int )
+                
             }
         }
         /* Case like Label: add $1,$2,$3 */

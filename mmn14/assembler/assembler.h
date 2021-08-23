@@ -1,10 +1,8 @@
 #ifndef ASSEMBLER_H
 #define ASSEMBLER_H
 
-#include <stdlib.h>
-
 /*
-TODO remove this header
+About this program:
 
 
 

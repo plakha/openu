@@ -243,35 +243,6 @@ symbol_t *SymTabAddSymbol(sym_tab_t *sym_tab, const char label[])
     return new_symbol;
 }
 
-static size_t SizeOfDataType(enum data_type data_type)
-{
-    switch (data_type)
-    {
-    case BYTE:
-        return sizeof(byte);
-        break;
-    case HALF_WORD:
-        return sizeof(half_word_t);
-        break;
-
-    case WORD:
-        return sizeof(word_t);
-        break;
-    case ASCIZ:
-        return sizeof(char);
-        break;
-    case VOID:
-        assert(FALSE);
-        break;
-    default:
-        assert(FALSE);
-        break;
-    }
-
-    assert(FALSE);
-    return -1;
-}
-
 int SymTabSetDataVector(sym_tab_t *sym_tab, symbol_t *symbol, enum data_type data_type)
 {
     /* memory error if cannot allocate memory
@@ -302,6 +273,7 @@ int SymTabSetDataVector(sym_tab_t *sym_tab, symbol_t *symbol, enum data_type dat
     return 0;
 }
 
+int SymTabAddTodat
 
 
 
