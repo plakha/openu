@@ -8,13 +8,15 @@
 
 #define SPACE_CHARS (" \v\n")
 
+#define SIZE_OF_WORD (4)
+
 typedef unsigned char byte;
 
 
 typedef
 struct half_word
 {
-    byte bytes[2];
+    byte bytes[SIZE_OF_WORD];
 }
 half_word_t;
 
@@ -22,14 +24,13 @@ half_word_t;
 typedef
 struct word
 {
-    byte bytes[4];
+    byte bytes[SIZE_OF_WORD];
 }
 word_t;
 
 typedef char line_arg_t[MAX_LINE_LEN]; /* string of MAX_LINE_LEN length */
 
 enum data_type {VOID = 0, BYTE, HALF_WORD, WORD, ASCIZ};
-
 
 
 

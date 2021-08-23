@@ -89,8 +89,8 @@ static int StringToRegistry(const char *str)
     size_t i = 0;
     const size_t str_len = strlen(str);
     int reg = -1;
-    static const min_reg = 0;
-    static const max_reg = 31;
+    static const int min_reg = 0;
+    static const int max_reg = 31;
 
 
     if ('$' != str[0])
@@ -109,10 +109,12 @@ static int StringToRegistry(const char *str)
     if (is_reg)
     {
         reg = atoi(str + 1);
-        assert(reg >= 0);
+        assert(reg >= min_reg);
     }
 
-    return reg <= 31 ? reg : -1;
+    (void)min_reg;
+    
+    return reg <= max_reg ? reg : -1;
 }
 
 static int IsStringRegistry(const char *str)

@@ -4,6 +4,8 @@
 #include <stdio.h> /* fprintf() */
 
 #include "instruction_builder.h"
+const word_t BAD_INSTRUCTION = {{0x0, 0x0, 0x0, 0x0}}; /* all set to 1  */
+
 
 /*
 enum statement_type {R_3_ARG, R_2_ARG, J_0_ARG, J_1_ARG, J_1_LABEL, I_COND, I_ARITH_LOG_MEM, DIR_DEC, DIR_ASCII, DIR_QUALIF, LABEL, COMMENT, BLANK, ERROR};
@@ -22,7 +24,7 @@ struct
 }
 r_t;
 
-word_t *IBCreateInstructionR3Args(const char *inst,int rs, int rt, int rd)
+word_t IBCreateInstructionR3Args(const char *inst,int rs, int rt, int rd)
 {
     static const char *add = "add";
     static const char *sub = "sub";
@@ -34,14 +36,7 @@ word_t *IBCreateInstructionR3Args(const char *inst,int rs, int rt, int rd)
     int func = -1;
     static const int unused = 0;
   
-    r_t *new_instruction = calloc(1, sizeof(*new_instruction));
-    if (!new_instruction)
-    { 
-        fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
-        __LINE__, __FILE__);
-
-        return NULL;
-    }
+    r_t new_instruction = {0};
 
     if (0 == strcmp(inst, add))
     {
@@ -66,16 +61,34 @@ word_t *IBCreateInstructionR3Args(const char *inst,int rs, int rt, int rd)
     else
     {
         assert(0);
-        return NULL;
+        return BAD_INSTRUCTION;
     }
 
-    new_instruction->unused = unused;
-    new_instruction->func = func;
-    new_instruction->rd = rd;
-    new_instruction->rt = rt;
-    new_instruction->rs = rs;
-    new_instruction->opcode = opcode;
+    new_instruction.unused = unused;
+    new_instruction.func = func;
+    new_instruction.rd = rd;
+    new_instruction.rt = rt;
+    new_instruction.rs = rs;
+    new_instruction.opcode = opcode;
 
-    return (word_t *)new_instruction;
+    return *(word_t *)&new_instruction;
     
+}
+
+int IBIsBadInstruction(word_t instruction)
+{
+    return IBIsSameWord(BAD_INSTRUCTION, instruction);
+}
+
+int IBIsSameWord(word_t word1, word_t word2)
+{   
+    unsigned int i = 0;
+    int ret = 1;
+
+    for (;i < SIZE_OF_WORD; ++i)
+    {
+        ret = (ret && (word1.bytes[i] == word2.bytes[i]));
+    }
+    
+    return ret;
 }
