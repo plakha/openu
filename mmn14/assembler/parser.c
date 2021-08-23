@@ -89,6 +89,9 @@ static int StringToRegistry(const char *str)
     size_t i = 0;
     const size_t str_len = strlen(str);
     int reg = -1;
+    static const min_reg = 0;
+    static const max_reg = 31;
+
 
     if ('$' != str[0])
     {
@@ -106,9 +109,10 @@ static int StringToRegistry(const char *str)
     if (is_reg)
     {
         reg = atoi(str + 1);
+        assert(reg >= 0);
     }
 
-    return reg;
+    return reg <= 31 ? reg : -1;
 }
 
 static int IsStringRegistry(const char *str)
@@ -994,7 +998,7 @@ static enum data_type DirToDataElementType(const char *directive)
     }
     else if (0 == strcmp(directive, lb))
     {
-        BYTE;
+        return BYTE;
     }
     else if (0 == strcmp(directive, asciz))
     {
@@ -1066,10 +1070,16 @@ static void FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
             else
             {
                 symbol_t *new_symbol =  SymTabAddSymbol(parser->sym_tab, label_buf);
-                SymTabSetDataVector(parser->sym_tab, new_symbol, DirToDataElementType(dir));
+                enum data_type data_type = DirToDataElementType(dir);
                 size_t i = 0;
+                
+                SymTabSetDataVector(parser->sym_tab, new_symbol, data_type);
 
-                for (int )
+                for (i = 2; DVECSize(args) > i; ++i)
+                {
+                    long data = atol((const char *) DVECGetItemAddress(args, i));
+                    SymTabAddDataToDataVector(parser->sym_tab, new_symbol, data_type, &data);
+                }
                 
             }
         }
@@ -1167,6 +1177,17 @@ PushData(){
 
 */
 
+void ParserSeconsPass(parser_t *parrser, dvec_t *dvec, size_t line_num)
+{
+    /* if entry, push to SymTab
+    if already extern = ERROR,
+    syntax_corrupt = TRUE */
+/*
+    else if instruction{}
+    new_instruction = InstructionBuilderCreateInstructionR1(, 1, )
+
+    */
+}
 
 void ParserFirstPass(parser_t *parser, dvec_t *args, size_t line_num)
 {

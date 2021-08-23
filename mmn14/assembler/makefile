@@ -1,7 +1,7 @@
 CC = gcc
 CCFLAGS = -pedantic -Wall -DNDEBUG
 DEBUGCCFLAGS = -pedantic -Wall -g3 -O0
-SOURCES=assembler.c dll.c dvec.c file.c parser.c ram.c sym_tab.c
+SOURCES=assembler.c dll.c dvec.c file.c parser.c ram.c sym_tab.c instruction_builder.c
 HEADERS=$(SOURCES:.c=.h) 
 HEADERS+=mmn14_types.h
 OBJECTS=$(SOURCES:.c=.o)

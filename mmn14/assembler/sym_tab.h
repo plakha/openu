@@ -19,6 +19,9 @@ int SymTabIsExtern(const sym_tab_t *sym_tab, const symbol_t *symbol);
 
 int SymTabSetDataVector(sym_tab_t *sym_tab, symbol_t *symbol, enum data_type data_type);
 
+int SymTabAddDataToDataVector(sym_tab_t *sym_tab, symbol_t *symbol, enum data_type data_type, const void *data);
+
+
 symbol_t *SymTabAddSymbol(sym_tab_t *sym_tab, const char label[]);
 /*
 void SymTabMemCpy(sym_tab_t *sym_tab, symbol_t *symbol, void *to);

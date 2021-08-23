@@ -73,6 +73,35 @@ const void *void_param)
     return strcmp(((symbol_t *)compared_symbol)->label, (const char *)given_label);
 }
 
+static size_t SizeOfDataType(enum data_type data_type)
+{
+    switch (data_type)
+    {
+    case BYTE:
+        return sizeof(byte);
+        break;
+    case HALF_WORD:
+        return sizeof(half_word_t);
+        break;
+
+    case WORD:
+        return sizeof(word_t);
+        break;
+    case ASCIZ:
+        return sizeof(char);
+        break;
+    case VOID:
+        assert(0);
+        break;
+    default:
+        assert(0);
+        break;
+    }
+
+    return -1lu;
+}
+
+
 int SymTabHasSymbol(const sym_tab_t *sym_tab, const char *label)
 {
     assert(sym_tab);
@@ -273,7 +302,20 @@ int SymTabSetDataVector(sym_tab_t *sym_tab, symbol_t *symbol, enum data_type dat
     return 0;
 }
 
-int SymTabAddTodat
+int SymTabAddDataToDataVector(sym_tab_t *sym_tab, symbol_t *symbol, enum data_type data_type, const void *data)
+{
+
+}
+
+enum data_type SymTabSymbolGetDataType(sym_tab_t *sym_tab, symbol_t *symbol)
+{
+    (void)sym_tab;
+
+    assert(symbol);
+    assert(symbol->is_data);
+
+    return symbol->data_type;
+}
 
 
 
