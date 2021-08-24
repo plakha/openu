@@ -9,7 +9,7 @@
 #include "sym_tab.h"
 
 typedef enum {FALSE, TRUE} bool;
-
+enum {OK = 0, ERROR};
 
 /* the assumption is that the declaration is in order, to kkep the data count.
 So do not alter the data of n'th symbol 
@@ -53,13 +53,33 @@ struct symbol
 sym_tab_t *SymTabCreate()
 {
     sym_tab_t *new_sym_tab = malloc(sizeof(*new_sym_tab));
+    if (!new_sym_tab)
+    {
+        fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
+        __LINE__, __FILE__);
+
+        return NULL;
+    }
+
+    new_sym_tab->symbol_table = DLLCreate();
+    if (!new_sym_tab->symbol_table)
+    {   
+        free(new_sym_tab);
+        new_sym_tab = NULL;
+        fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
+        __LINE__, __FILE__);
+
+        return NULL;
+    }
+
+    new_sym_tab->dc = 0;
 
     return new_sym_tab;
 }
 
 /* typedef int (*cmp_f)(const void *data, const void *key, const void *params); */
 /* If same label - return 0 */
-static int CmpSymbolByLabel(const void *compared_symbol, const void *given_label, 
+static int IsFoundSymbolByLabel(const void *compared_symbol, const void *given_label, 
 const void *void_param)
 {
     assert(compared_symbol);
@@ -69,8 +89,8 @@ const void *void_param)
     assert(((symbol_t *)compared_symbol)->label);
 
     (void)void_param;
-
-    return strcmp(((symbol_t *)compared_symbol)->label, (const char *)given_label);
+   
+    return !strcmp(((symbol_t *)compared_symbol)->label, (const char *)given_label);
 }
 
 static size_t SizeOfDataType(enum data_type data_type)
@@ -122,7 +142,7 @@ symbol_t *SymTabGetSymbol(sym_tab_t *sym_tab, const char *label)
     table_begun_iter = DLLBegin(sym_tab->symbol_table);
     table_end_iter = DLLEnd(sym_tab->symbol_table);
     found_symbol_iter = DLLFind(table_begun_iter, table_end_iter, 
-    &CmpSymbolByLabel,label, NULL);
+    &IsFoundSymbolByLabel,label, NULL);
     
     /* Found Symbol */
     if (!DLLIsSameIter(table_end_iter, found_symbol_iter))
@@ -187,40 +207,6 @@ int SymTabIsExtern(const sym_tab_t *sym_tab, const symbol_t *symbol)
     return ret;
 }
 
-static void DestroySymbol(sym_tab_t *sym_tab, symbol_t *symbol)
-{
-    it_t table_begun_iter = NULL;
-    it_t table_end_iter = NULL;
-    it_t found_symbol_iter = NULL;
-
-    assert(sym_tab);
-    assert(symbol);
-
-    table_begun_iter = DLLBegin(sym_tab->symbol_table);
-    table_end_iter = DLLEnd(sym_tab->symbol_table);
-    found_symbol_iter = DLLFind(table_begun_iter, table_end_iter, &CmpSymbolByLabel,symbol->label, NULL);
-    
-    /* if symbol has been pushed to table, pop it */
-    if (!DLLIsSameIter(table_end_iter, found_symbol_iter))
-    {
-        DLLErase(found_symbol_iter);
-    }
-
-    if (symbol->data_vector)
-    {
-        DVECDestroy(symbol->data_vector);
-        symbol->data_vector = NULL;
-    }
-
-    if (symbol->ic_referenced)
-    {
-        DVECDestroy(symbol->ic_referenced);
-        symbol->ic_referenced = NULL;
-    }
-
-    free(symbol);
-    symbol = NULL;
-}
 
 symbol_t *SymTabAddSymbol(sym_tab_t *sym_tab, const char label[])
 {
@@ -233,18 +219,17 @@ symbol_t *SymTabAddSymbol(sym_tab_t *sym_tab, const char label[])
     assert(!SymTabHasSymbol(sym_tab, label));
 
     new_symbol = malloc(sizeof(*new_symbol));
+    if (!new_symbol)
     {
-        if (!new_symbol)
-        {
-            fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
-            __LINE__, __FILE__);
+        fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
+        __LINE__, __FILE__);
 
-            return NULL;
-        }
+        return NULL;
     }
+    
 
     bad_iter = DLLEnd(sym_tab->symbol_table);
-    strcpy ((char *)(new_symbol->dc_declared), label);
+    strcpy ((char *)(new_symbol->label), label);
     new_symbol->is_entry = FALSE;
     new_symbol->is_extern = FALSE;
 
@@ -288,23 +273,42 @@ int SymTabSetDataVector(sym_tab_t *sym_tab, symbol_t *symbol, enum data_type dat
 
     symbol->is_data = TRUE;
     symbol->data_type = data_type;
+    symbol->dc_declared = sym_tab->dc;
 
     symbol->data_vector = DVECCreate(SizeOfDataType(data_type), MAX_LINE_LEN / 2);
 
     if (NULL == symbol->data_vector)
     {
-         fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
+        fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
         __LINE__, __FILE__);
 
-        return 1;
+        return ERROR;
     }
 
-    return 0;
+    return OK;
 }
 
 int SymTabAddDataToDataVector(sym_tab_t *sym_tab, symbol_t *symbol, enum data_type data_type, const void *data)
 {
+    size_t size_of_element = -1;
+    int status = OK;
 
+    /* push to symbol and promote sym_ytab dc */
+    assert(sym_tab);
+    assert(symbol);
+    assert(data);
+    assert(symbol->data_vector);
+    assert(data_type == symbol->data_type);
+
+    size_of_element = SizeOfDataType(data_type);
+
+    status = DVECPushBack(symbol->data_vector, data);
+    /* enough memory has been allocated in SymTabSetDataVector()  */
+    assert(OK == status);
+
+    sym_tab->dc += size_of_element;
+
+    return status;
 }
 
 enum data_type SymTabSymbolGetDataType(sym_tab_t *sym_tab, symbol_t *symbol)
@@ -318,18 +322,6 @@ enum data_type SymTabSymbolGetDataType(sym_tab_t *sym_tab, symbol_t *symbol)
 }
 
 
-
-/*
-void SymTabMemCpy(sym_tab_t *sym_tab, symbol_t *symbol, void *to)
-{
-    return;
-}
-*/
-
-/*
-return status 
-0 - success;
-*/
 
 /* typedef int (*act_f)(void *data, const void *params); */
 static int UtilDestroySymbol(void *data,const void *params)
@@ -370,3 +362,42 @@ void SymTabDestroy(sym_tab_t *sym_tab)
     free(sym_tab);
     sym_tab = NULL;    
 }
+
+/*
+
+static void DestroySymbol(sym_tab_t *sym_tab, symbol_t *symbol)
+{
+    it_t table_begun_iter = NULL;
+    it_t table_end_iter = NULL;
+    it_t found_symbol_iter = NULL;
+
+    assert(sym_tab);
+    assert(symbol);
+
+    table_begun_iter = DLLBegin(sym_tab->symbol_table);
+    table_end_iter = DLLEnd(sym_tab->symbol_table);
+    found_symbol_iter = DLLFind(table_begun_iter, table_end_iter, &CmpSymbolByLabel,symbol->label, NULL);
+    
+    "if symbol has been pushed to table, pop it";
+    if (!DLLIsSameIter(table_end_iter, found_symbol_iter))
+    {
+        DLLErase(found_symbol_iter);
+    }
+
+    if (symbol->data_vector)
+    {
+        DVECDestroy(symbol->data_vector);
+        symbol->data_vector = NULL;
+    }
+
+    if (symbol->ic_referenced)
+    {
+        DVECDestroy(symbol->ic_referenced);
+        symbol->ic_referenced = NULL;
+    }
+
+    free(symbol);
+    symbol = NULL;
+}
+
+*/

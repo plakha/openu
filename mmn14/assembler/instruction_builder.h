@@ -8,7 +8,7 @@
 word_t IBCreateInstructionR3Args(const char *inst,int rs, int rt, int rd);
 
 /* rt unused */
-word_t *IBCreateInstructionR2Args(const char *inst, int rs, int rd);
+word_t IBCreateInstructionR2Args(const char *inst, int rs, int rd);
 
 /* "stop only" */
 word_t IBCreateInstructionJ0Args(const char *inst);

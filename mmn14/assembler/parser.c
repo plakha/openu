@@ -15,7 +15,7 @@
 #define MAX_LABEL_SIZE (31)
 
 enum {FALSE = 0, TRUE};
-
+enum {OK = 0};
 
 struct  parser /* file parser */
 {
@@ -478,9 +478,6 @@ static int IsValidateJ0(const parser_t *parser, const dvec_t *arg_arr, int is_un
 
         return FALSE;
     }
-
-
-
 
     return TRUE;
 }
@@ -1020,7 +1017,7 @@ E.g. .entry mylabel may be defined before mylabel: [DEFINITION],\which will botc
 for each definition, I keep the current sym_tab datacount. So on second pass the symbols address is 
 (total_ic * word_size + symbol_dc)
 */
-static void FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
+static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
 {
     enum statement_type statement_type= -1;
     static const char *extern_dir_str = ".extern";
@@ -1035,7 +1032,6 @@ static void FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
     arg1 = DVECGetItemAddress(args, 1);
 
     statement_type = WhatStatement(args, FALSE);
-
     /*
         if arg0 label:
             CreateSymbol(arg0)
@@ -1075,12 +1071,28 @@ static void FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
                 enum data_type data_type = DirToDataElementType(dir);
                 size_t i = 0;
                 
-                SymTabSetDataVector(parser->sym_tab, new_symbol, data_type);
-
-                for (i = 2; DVECSize(args) > i; ++i)
+                if (OK != SymTabSetDataVector(parser->sym_tab, new_symbol, data_type))
                 {
-                    long data = atol((const char *) DVECGetItemAddress(args, i));
-                    SymTabAddDataToDataVector(parser->sym_tab, new_symbol, data_type, &data);
+                    fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
+                    __LINE__, __FILE__);
+
+                    return ERROR;
+                }
+
+                for (i = 2; DVECSize(args) > i; i += 2)
+                {
+                    const char *data = (const char *) DVECGetItemAddress(args, i);
+                    long num_data = atol(data);
+
+                    assert(IsStringNum(data));
+
+                    if (OK != SymTabAddDataToDataVector(parser->sym_tab, new_symbol, data_type, &num_data))
+                    {
+                        fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
+                        __LINE__, __FILE__);
+
+                        return ERROR;
+                    }
                 }
                 
             }
@@ -1088,18 +1100,22 @@ static void FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
         /* Case like Label: add $1,$2,$3 */
         else if (IsInstruction(labeled_statement_type))
         {
-            if (SymTabHasSymbol(parser->sym_tab, arg0))
+            if (SymTabHasSymbol(parser->sym_tab, label_buf))
             {
+                    puts("!!!GOT HERE!!!");
+
                 parser->is_file_syntax_corrupt = TRUE;
 
                 printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
-                parser->source_file_name, parser->cur_line_num, arg0);
+                parser->source_file_name, parser->cur_line_num, label_buf);
             }
             else
             {
                 symbol_t *new_symbol = SymTabAddSymbol(parser->sym_tab, label_buf);
                 
                 assert(strlen(label_buf) > 0);
+
+
 
 
                 /* set is_code, keep (ic - 1) */
@@ -1179,7 +1195,7 @@ PushData(){
 
 */
 
-void ParserSeconsPass(parser_t *parrser, dvec_t *dvec, size_t line_num)
+void ParserSecondPass(parser_t *parrser, dvec_t *dvec, size_t line_num)
 {
     /* if entry, push to SymTab
     if already extern = ERROR,
