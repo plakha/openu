@@ -1114,7 +1114,7 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
             assert('.' == dir[0]);
             assert(VOID != data_type);
                             
-            if (!new_symbol || OK != SymTabSetDataVector(parser->sym_tab, new_symbol, data_type))
+            if (!new_symbol || OK != SymTabSymbolSetData(parser->sym_tab, new_symbol, data_type))
             {
                 fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
                 __LINE__, __FILE__);
@@ -1137,7 +1137,7 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
 
                     assert(IsStringNum(data));
 
-                    if (OK != SymTabAddDataToDataVector(parser->sym_tab, new_symbol, data_type, &num_data))
+                    if (OK != SymTabSymbolAddDataToDataVector(parser->sym_tab, new_symbol, data_type, &num_data))
                     {
                         fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
                         __LINE__, __FILE__);
@@ -1150,7 +1150,7 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
             else if (DIR_ASCII == labeled_statement_type)
             {
                 const char str_from_asciz[MAX_LINE_LEN] = {'\0'};
-                const char *asciz_arg = (const char *)DVECGetItemAddress(args, 3);
+                const char *asciz_arg = (const char *)DVECGetItemAddress(args, 2);
                 size_t str_len = -1;
                 size_t i = 0;
 
@@ -1162,7 +1162,7 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
                 str_len = strlen(str_from_asciz);
                 for (i = 0; i <= str_len; ++i)
                 {
-                    if (OK != SymTabAddDataToDataVector(parser->sym_tab, 
+                    if (OK != SymTabSymbolAddDataToDataVector(parser->sym_tab, 
                                 new_symbol, data_type, str_from_asciz + i))
                     {
                         fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
@@ -1177,11 +1177,6 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
             {
                 assert(FALSE);
             }
-                
-                
-                
-            
-        
         }
         /* Case like Label: add $1,$2,$3 */
         else if (IsInstruction(labeled_statement_type))
@@ -1191,32 +1186,27 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
             assert(strlen(label_trimmed) > 0);
             assert(parser->ic > 0);
             /* was promoted on validation */
-
-
-
-
-
-
-            /* set is_code, keep (ic - 1) */
             
+            SymTabSymbolSetCode(parser->sym_tab, new_symbol, parser->ic - 1);         
         }
 
         /*Case like Label0: .extern Label1 */
         else if (DIR_QUALIF == labeled_statement_type && 0 == strcmp(extern_dir_str, arg1))
         {
-            const char *arg2 = DVECGetItemAddress(args, 2);
+            const char *label_qualified = DVECGetItemAddress(args, 2);
 
-            assert(IsStringLabel(arg2, FALSE));
+            assert(IsStringLabel(label_qualified, FALSE));
 
-            if (SymTabHasSymbol(parser->sym_tab, arg2))
+            if (SymTabHasSymbol(parser->sym_tab, label_qualified))
             {
-                symbol_t *existing_symbol = SymTabGetSymbol(parser->sym_tab, arg2);
-                if (!SymTabIsExtern(parser->sym_tab, existing_symbol))
+                symbol_t *existing_symbol = SymTabGetSymbol(parser->sym_tab, label_qualified);
+                /* we will ignore setting Label as extern for the second time */
+                if (!SymTabSymbolIsExtern(parser->sym_tab, existing_symbol))
                 {
                     parser->is_file_syntax_corrupt = TRUE;
 
                     printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
-                    parser->source_file_name, parser->cur_line_num, arg2);
+                    parser->source_file_name, parser->cur_line_num, label_qualified);
 
                     return SYNT_ERR;
                 }
@@ -1225,6 +1215,16 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
             else 
             {
                 /* add symbol, set extern */
+                symbol_t *new_symbol = SymTabAddSymbol(parser->sym_tab, label_trimmed);
+                if (!new_symbol)
+                {
+                    fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
+                    __LINE__, __FILE__);
+
+                    return MEM_ERR;
+                }
+
+                SymTabSymbolSetEntry(parser->sym_tab, new_symbol);
             }
 
         }
@@ -1243,7 +1243,7 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
         {
             
             symbol_t *existing_symbol = SymTabGetSymbol(parser->sym_tab, arg1);
-            if (!SymTabIsExtern(parser->sym_tab, existing_symbol))
+            if (!SymTabSymbolIsExtern(parser->sym_tab, existing_symbol))
             {
                 parser->is_file_syntax_corrupt = TRUE;
 

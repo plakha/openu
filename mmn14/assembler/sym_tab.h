@@ -12,14 +12,20 @@ sym_tab_t *SymTabCreate();
 int SymTabHasSymbol(const sym_tab_t *sym_tab, const char *label);
 symbol_t *SymTabGetSymbol(sym_tab_t *sym_tab, const char *label);
 
-int SymTabIsData(const sym_tab_t *sym_tab, const symbol_t *symbol);
-int SymTabIsCode(const sym_tab_t *sym_tab, const symbol_t *symbol);
-int SymTabIsExtern(const sym_tab_t *sym_tab, const symbol_t *symbol);
+int SymTabSymbolIsData(const sym_tab_t *sym_tab, const symbol_t *symbol);
+int SymTabSymbolIsCode(const sym_tab_t *sym_tab, const symbol_t *symbol);
+int SymTabSymbolIsExtern(const sym_tab_t *sym_tab, const symbol_t *symbol);
+int SymTabSymbolIsEntry(const sym_tab_t *sym_tab, const symbol_t *symbol);
 
 
-int SymTabSetDataVector(sym_tab_t *sym_tab, symbol_t *symbol, enum data_type data_type);
 
-int SymTabAddDataToDataVector(sym_tab_t *sym_tab, symbol_t *symbol, enum data_type data_type, const void *data);
+int SymTabSymbolSetData(sym_tab_t *sym_tab, symbol_t *symbol, enum data_type data_type);
+int SymTabSymbolSetCode(sym_tab_t *sym_tab, symbol_t *symbol, size_t instruction_index);
+int SymTabSymbolSetEntry(sym_tab_t *sym_tab, symbol_t *symbol);
+int SymTabSymbolSetExtern(sym_tab_t *sym_tab, symbol_t *symbol);
+
+
+int SymTabSymbolAddDataToDataVector(sym_tab_t *sym_tab, symbol_t *symbol, enum data_type data_type, const void *data);
 
 
 symbol_t *SymTabAddSymbol(sym_tab_t *sym_tab, const char label[]);
