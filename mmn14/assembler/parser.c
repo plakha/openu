@@ -15,7 +15,6 @@
 #define MAX_LABEL_SIZE (31)
 
 enum {FALSE = 0, TRUE};
-enum {OK = 0};
 
 struct  parser /* file parser */
 {
@@ -31,10 +30,38 @@ struct  parser /* file parser */
 
 /******* Static function declarations *********/
 static enum statement_type WhatStatement(const dvec_t *args, int is_under_label);
+static void ValidateLineArgs(parser_t *parser, dvec_t *args, enum statement_type statement_type, int is_under_label);
+static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args);
+
+
 static int IsStringLabel(const char *str, int is_declaration);
+static int IsStringRegistry(const char *str);
+static int IsStringNum(const char *str);
+static int IsStringLegalAscizArg(const char *str);
+static int IsStringLabel(const char *str, int is_declaration);
+
+static int IsInstruction(enum statement_type statement_type);
+
+static int IsValidateDirDec(const parser_t *parser, const dvec_t *arg_arr, int is_under_label);
+static int IsValidateDirQualif(const parser_t *parser, const dvec_t *arg_arr, int is_under_label);
+static int IsValidateDirAscii(const parser_t *parser, const dvec_t *arg_arr, int is_under_label);
+static int IsValidateR3(const parser_t *parser, const dvec_t *arg_arr, int is_under_label);
+static int IsValidateR2(const parser_t *parser, const dvec_t *arg_arr, int is_under_label);
+static int IsValidateJ0(const parser_t *parser, const dvec_t *arg_arr, int is_under_label);
+static int IsValidateJ1Label(const parser_t *parser, const dvec_t *arg_arr, int is_under_label);
+static int IsValidateJ1Arg(const parser_t *parser, const dvec_t *arg_arr, int is_under_label);
+static int IsValidateICond(const parser_t *parser, const dvec_t *arg_arr, int is_under_label);
+static int IsValidateIArithLogMem(const parser_t *parser, const dvec_t *arg_arr, int is_under_label);
+
+
+
+static int StringToRegistry(const char *str);
+static void AscizArgToString(const char *asciz_arg, char *buf);
+
+static enum data_type DirToDataElementType(const char *directive);
+
+
 /***********************/
-
-
 
 parser_t *ParserCreate(const char *source_file_name, ram_t *ram, sym_tab_t *sym_tab)
 {
@@ -79,7 +106,6 @@ void ParserDestroy(parser_t *parser, int should_destroy_passed_entities)
     parser = NULL;
 }
 
-
 /* 
     return registry index (0 to 31, incl.) 
 -1 if not registry */
@@ -89,9 +115,10 @@ static int StringToRegistry(const char *str)
     size_t i = 0;
     const size_t str_len = strlen(str);
     int reg = -1;
-    static const int min_reg = 0;
     static const int max_reg = 31;
-
+    #ifndef DNDEBUG
+    static const int min_reg = 0;
+    #endif
 
     if ('$' != str[0])
     {
@@ -111,8 +138,6 @@ static int StringToRegistry(const char *str)
         reg = atoi(str + 1);
         assert(reg >= min_reg);
     }
-
-    (void)min_reg;
     
     return reg <= max_reg ? reg : -1;
 }
@@ -153,10 +178,6 @@ static int IsStringNum(const char *str)
 
 
 
-static void UtilPushToSymTab(parser_t *parser_data, sym_tab_t *sym_tab, char *statement[])
-{
-
-}
 
 /* e.g.  .dh 1, 2, 3,3 */
 static int IsValidateDirDec(const parser_t *parser, const dvec_t *arg_arr, int is_under_label)
@@ -274,7 +295,6 @@ static int IsValidateDirQualif(const parser_t *parser, const dvec_t *arg_arr, in
     return TRUE;
 }
 
-
 static int IsStringLegalAscizArg(const char *str)
 {
     /*
@@ -317,6 +337,29 @@ static int IsStringLegalAscizArg(const char *str)
     }
 
     return TRUE;
+}
+
+static void AscizArgToString(const char *asciz_arg, char *buf)
+{
+    const char *left = asciz_arg;
+    const char *right = NULL;
+
+    assert(asciz_arg);
+    assert(buf);
+    assert(IsStringLegalAscizArg(asciz_arg));
+
+    right = asciz_arg + strlen(asciz_arg) - 1;
+
+    while ('\"' != *left) { ++left;}
+    while ('\"' != *right) { --right;}
+
+    assert('\"' == *left);
+    assert('\"' == *right);
+
+    ++left; --right;
+    assert(left <= right);
+
+    strncpy(buf, left, right - left);
 }
 
 static int IsValidateDirAscii(const parser_t *parser, const dvec_t *arg_arr, int is_under_label)
@@ -607,8 +650,6 @@ static int IsValidateICond(const parser_t *parser, const dvec_t *arg_arr, int is
         return FALSE;
     }
 
-
-
     return TRUE;
 }
 
@@ -642,7 +683,6 @@ static int IsValidateIArithLogMem(const parser_t *parser, const dvec_t *arg_arr,
     arg5 register
 
     */
-
 
     assert(parser);
     assert(arg_arr);
@@ -737,8 +777,6 @@ static int IsStringLabel(const char *str, int is_declaration)
     }
 
     return TRUE;
-    
-
 }
 
 static enum statement_type WhatStatement(const dvec_t *args, int is_under_label)
@@ -980,22 +1018,22 @@ static int IsInstruction(enum statement_type statement_type)
 
 static enum data_type DirToDataElementType(const char *directive)
 {
-    static const char *lh = ".lh";
-    static const char *lw = ".lw";
-    static const char *lb = ".lb";
+    static const char *dh = ".dh";
+    static const char *dw = ".dw";
+    static const char *db = ".db";
     static const char *asciz = ".asciz";
    
     assert(directive);
 
-    if (0 == strcmp(directive, lh))
+    if (0 == strcmp(directive, dh))
     {
         return HALF_WORD;
     }
-    else if (0 == strcmp(directive, lw))
+    else if (0 == strcmp(directive, dw))
     {
         return WORD;
     }
-    else if (0 == strcmp(directive, lb))
+    else if (0 == strcmp(directive, db))
     {
         return BYTE;
     }
@@ -1005,17 +1043,27 @@ static enum data_type DirToDataElementType(const char *directive)
     }
     else
     {
+        #ifndef NDEBUG
+        puts(directive);
+        #endif
         assert(FALSE);
 
         return VOID;
     }
 }
 
-/* Fill symbol table with definitions and externs only!
+/*
+The function is called after validator, for each line passed to parser on first pass.
+
+ Fill symbol table with definitions and externs only!
 Because I want to keep dc in order.
 E.g. .entry mylabel may be defined before mylabel: [DEFINITION],\which will botch data count:
 for each definition, I keep the current sym_tab datacount. So on second pass the symbols address is 
 (total_ic * word_size + symbol_dc)
+
+
+return SYNT_ERR on syntax error (the caller will ignore)
+return MEM_ERR on memory error (the caller will stop the program)
 */
 static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
 {
@@ -1032,57 +1080,60 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
     arg1 = DVECGetItemAddress(args, 1);
 
     statement_type = WhatStatement(args, FALSE);
-    /*
-        if arg0 label:
-            CreateSymbol(arg0)
-            SymVolSetFlags(data/code/)
-            if data:    
-                pushData()
-            pushToSymTab
-    */
+
+   /* like MyLalbel: ... */ 
    if (LABEL == statement_type)
    {
         enum statement_type labeled_statement_type = WhatStatement(args, TRUE);
-        char label_buf[MAX_LABEL_SIZE] = {'\0'};
+        const char label_trimmed[MAX_LABEL_SIZE] = {'\0'};
          
         assert(IsStringLabel(arg0, TRUE));
         assert(':' == arg0[strlen(arg0) - 1]);
 
-        /* copy the label without the terminating ':' */
-        strncpy(label_buf, arg0, strlen(arg0) - 1);
+        /* copy the label without the terminating ':', e.g.: "MyLabel:" -> "MyLabel" */
+        strncpy((char *)label_trimmed, arg0, strlen(arg0) - 1);
 
-        /*Case like Label: .lh 1, -7 */
+        if (SymTabHasSymbol(parser->sym_tab, label_trimmed))
+        {
+            parser->is_file_syntax_corrupt = TRUE;
+            /* We will add entry label anly on second pass. 
+            So any instance of finding a label exists in the table - means error */
+
+            printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
+            parser->source_file_name, parser->cur_line_num, label_trimmed);
+
+            return SYNT_ERR;
+        }
+
         if (DIR_DEC == labeled_statement_type || DIR_ASCII == labeled_statement_type)
         {
             const char *dir = arg1;
+            symbol_t *new_symbol =  SymTabAddSymbol(parser->sym_tab, label_trimmed);
+            enum data_type data_type = DirToDataElementType(dir);
 
             assert('.' == dir[0]);
-
-            if (SymTabHasSymbol(parser->sym_tab, arg0))
+            assert(VOID != data_type);
+                            
+            if (!new_symbol || OK != SymTabSetDataVector(parser->sym_tab, new_symbol, data_type))
             {
-                parser->is_file_syntax_corrupt = TRUE;
+                fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
+                __LINE__, __FILE__);
 
-                printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
-                parser->source_file_name, parser->cur_line_num, arg0);
+                return MEM_ERR;
             }
-            else
+            
+            /*Case like Label: .dh 1, -7 */
+            if (DIR_DEC == labeled_statement_type)
             {
-                symbol_t *new_symbol =  SymTabAddSymbol(parser->sym_tab, label_buf);
-                enum data_type data_type = DirToDataElementType(dir);
                 size_t i = 0;
-                
-                if (OK != SymTabSetDataVector(parser->sym_tab, new_symbol, data_type))
-                {
-                    fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
-                    __LINE__, __FILE__);
 
-                    return ERROR;
-                }
+                assert(ASCIZ != data_type);
+                assert(BYTE == data_type || HALF_WORD == data_type || WORD == data_type);
 
                 for (i = 2; DVECSize(args) > i; i += 2)
                 {
                     const char *data = (const char *) DVECGetItemAddress(args, i);
-                    long num_data = atol(data);
+                    const long num_data = atol(data);
 
                     assert(IsStringNum(data));
 
@@ -1091,35 +1142,63 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
                         fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
                         __LINE__, __FILE__);
 
-                        return ERROR;
+                        return MEM_ERR;
                     }
                 }
-                
             }
+            /*Case like Label: .asciz "printable_string" */
+            else if (DIR_ASCII == labeled_statement_type)
+            {
+                const char str_from_asciz[MAX_LINE_LEN] = {'\0'};
+                const char *asciz_arg = (const char *)DVECGetItemAddress(args, 3);
+                size_t str_len = -1;
+                size_t i = 0;
+
+                assert(ASCIZ == data_type);
+                assert(IsStringLegalAscizArg(asciz_arg));
+
+                AscizArgToString(asciz_arg, (char *)str_from_asciz);
+
+                str_len = strlen(str_from_asciz);
+                for (i = 0; i <= str_len; ++i)
+                {
+                    if (OK != SymTabAddDataToDataVector(parser->sym_tab, 
+                                new_symbol, data_type, str_from_asciz + i))
+                    {
+                        fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
+                        __LINE__, __FILE__);
+
+                        return MEM_ERR;
+                    }
+                }
+
+            }
+            else
+            {
+                assert(FALSE);
+            }
+                
+                
+                
+            
+        
         }
         /* Case like Label: add $1,$2,$3 */
         else if (IsInstruction(labeled_statement_type))
         {
-            if (SymTabHasSymbol(parser->sym_tab, label_buf))
-            {
-                    puts("!!!GOT HERE!!!");
-
-                parser->is_file_syntax_corrupt = TRUE;
-
-                printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
-                parser->source_file_name, parser->cur_line_num, label_buf);
-            }
-            else
-            {
-                symbol_t *new_symbol = SymTabAddSymbol(parser->sym_tab, label_buf);
-                
-                assert(strlen(label_buf) > 0);
+            symbol_t *new_symbol = SymTabAddSymbol(parser->sym_tab, label_trimmed);
+            
+            assert(strlen(label_trimmed) > 0);
+            assert(parser->ic > 0);
+            /* was promoted on validation */
 
 
 
 
-                /* set is_code, keep (ic - 1) */
-            }
+
+
+            /* set is_code, keep (ic - 1) */
+            
         }
 
         /*Case like Label0: .extern Label1 */
@@ -1138,6 +1217,8 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
 
                     printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
                     parser->source_file_name, parser->cur_line_num, arg2);
+
+                    return SYNT_ERR;
                 }
 
             }
@@ -1178,28 +1259,13 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
    }
 }
 
-/*
-PushData(){
-    if asciz
-    {
-        for ch in str
-            pusg to Symbol->dvec
-
-    }
-    id /dh/fw/db
-    {
-
-    }
-    for 
-}
-
-*/
-
 void ParserSecondPass(parser_t *parrser, dvec_t *dvec, size_t line_num)
 {
-    /* if entry, push to SymTab
-    if already extern = ERROR,
-    syntax_corrupt = TRUE */
+    /* if entry, update symbol to SymTab
+    if already extern = ERROR, Attempting to declare an extern as entry
+    syntax_corrupt = TRUE 
+    
+    if no such symbol - error - UNDEFINED entry*/
 /*
     else if instruction{}
     new_instruction = InstructionBuilderCreateInstructionR1(, 1, )
@@ -1273,6 +1339,8 @@ const char *ParserGetFileName(const parser_t *parser)
     return parser->source_file_name;
 }
 
+
+/* return if the syntax was failed. Fail the syntax */
 int ParserFailParser(parser_t *parser)
 {
     int ret = 0;

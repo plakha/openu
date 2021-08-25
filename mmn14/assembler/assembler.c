@@ -12,7 +12,6 @@
 
 #define MAX_FILENAME_LEN (255)
 
-enum status {OK = 0, ERROR_STATUS};
 enum {FALSE = 0, TRUE};
 
 static const char *param_extension = ".as";
@@ -66,7 +65,7 @@ int main(int argc, char const *argv[])
         {
             fprintf(stderr, "MEMORY ERROR: Couldn't allocate memory, while running line %d in file %s\n", __LINE__, __FILE__);
 
-            return ERROR;
+            return MEM_ERR;
         }
 
         ram = RAMCreate();
@@ -75,7 +74,7 @@ int main(int argc, char const *argv[])
             RAMDestroy(ram);
             fprintf(stderr, "MEMORY ERROR: Couldn't allocate memory, while running line %d in file %s\n", __LINE__, __FILE__);
 
-            return ERROR;
+            return MEM_ERR;
         }
 
         parser = ParserCreate(filepaths[i], ram, sym_tab);
@@ -85,7 +84,7 @@ int main(int argc, char const *argv[])
             SymTabCreate(sym_tab);
             fprintf(stderr, "Couldn't allocate memory, while running line %d in file %s\n", __LINE__, __FILE__);
 
-            return ERROR;
+            return MEM_ERR;
         }
 
 
@@ -111,7 +110,7 @@ int main(int argc, char const *argv[])
             {
                 fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", __LINE__, __FILE__);
         
-                return ERROR_STATUS;
+                return MEM_ERR;
             }
 
             ParserFirstPass(parser, args_arr, -1);
@@ -148,7 +147,7 @@ int main(int argc, char const *argv[])
 
 static int CheckUsage(int num_filepaths, const char *filepaths[])
 {
-    int status = (num_filepaths > 1) ? OK : ERROR_STATUS;
+    int status = (num_filepaths > 1) ? OK : SYNT_ERR;
 
     if (OK != status)
     {
@@ -168,7 +167,7 @@ static int CheckFileName(const char *filename)
     if (strcmp(filename + strlen(filename) - param_ext_len, param_extension))
     {
         printf("ERROR in filename \"%s\": expected extension \"%s\"\n", filename, param_extension);
-        return ERROR;
+        return SYNT_ERR;
     }
     return OK;
 }

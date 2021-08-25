@@ -13,6 +13,9 @@ Add as cases to Validate
 add Validators
 */
 
+enum {OK = 0, SYNT_ERR, MEM_ERR};
+
+
 typedef struct parser parser_t;
 
 parser_t *ParserCreate(const char *source_file_name, ram_t *ram, sym_tab_t *sym_tab);
