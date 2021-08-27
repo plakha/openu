@@ -20,7 +20,7 @@ typedef struct parser parser_t;
 
 parser_t *ParserCreate(const char *source_file_name, ram_t *ram, sym_tab_t *sym_tab);
 
-void ParserFirstPass(parser_t *parser, dvec_t *args, size_t line_number);
+int ParserFirstPass(parser_t *parser, dvec_t *args);
 
 int ParserIsSyntaxCorrupt(const parser_t * parser);
 
@@ -34,6 +34,10 @@ const char *ParserGetFileName(const parser_t *parser);
 
 /* Force parser into believing syntax is failed. Returns non-zero if it was already failed. Returns 0 otherwise */
 int ParserFailParser(parser_t *parser);
+
+size_t ParserCurLineNum(const parser_t *parser);
+
+void ParserResetLineCount(parser_t *parser);
 
 #endif /* PARSER_H */
 

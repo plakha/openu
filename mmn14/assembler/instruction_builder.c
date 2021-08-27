@@ -4,7 +4,6 @@
 #include <stdio.h> /* fprintf() */
 
 #include "instruction_builder.h"
-const word_t BAD_INSTRUCTION = {{0x0, 0x0, 0x0, 0x0}}; /* all set to 1  */
 
 
 /*
@@ -23,6 +22,13 @@ struct
     
 }
 r_t;
+
+const word_t BAD_INSTRUCTION = {{0x0}}; /* all set to 0 */
+
+word_t IBBadInstruction()
+{
+    return BAD_INSTRUCTION;
+}
 
 word_t IBCreateInstructionR3Args(const char *inst,int rs, int rt, int rd)
 {

@@ -7,6 +7,7 @@
 #include "mmn14_types.h"
 #include "sym_tab.h"
 #include "ram.h"
+#include "instruction_builder.h"
 
 #include "parser.h"
 
@@ -105,6 +106,397 @@ void ParserDestroy(parser_t *parser, int should_destroy_passed_entities)
     free(parser);
     parser = NULL;
 }
+
+size_t ParserCurLineNum(const parser_t *parser)
+{
+    assert(parser);
+
+    return parser->cur_line_num;
+}
+
+void ParserResetLineCount(parser_t *parser)
+{
+    assert(parser);
+
+    parser->cur_line_num = 0;
+}
+
+/*
+The function is called after validator, for each line passed to parser on first pass.
+
+ Fill symbol table with definitions and externs only!
+Because I want to keep dc in order.
+E.g. .entry mylabel may be defined before mylabel: [DEFINITION],\which will botch data count:
+for each definition, I keep the current sym_tab datacount. So on second pass the symbols address is 
+(total_ic * word_size + symbol_dc)
+
+
+return SYNT_ERR on syntax error (the caller will ignore)
+return MEM_ERR on memory error (the caller will stop the program)
+*/
+static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
+{
+    enum statement_type statement_type= -1;
+    static const char *extern_dir_str = ".extern";
+    char *arg0 = NULL;
+    char *arg1 = NULL;
+
+    assert(parser);
+    assert(args);
+    assert(!parser->is_file_syntax_corrupt);
+
+    arg0 = DVECGetItemAddress(args, 0);
+    arg1 = DVECGetItemAddress(args, 1);
+
+    statement_type = WhatStatement(args, FALSE);
+
+   /* like MyLalbel: ... */ 
+   if (LABEL == statement_type)
+   {
+        enum statement_type labeled_statement_type = WhatStatement(args, TRUE);
+        const char label_trimmed[MAX_LABEL_SIZE] = {'\0'};
+         
+        assert(IsStringLabel(arg0, TRUE));
+        assert(':' == arg0[strlen(arg0) - 1]);
+
+        /* copy the label without the terminating ':', e.g.: "MyLabel:" -> "MyLabel" */
+        strncpy((char *)label_trimmed, arg0, strlen(arg0) - 1);
+
+        if (SymTabHasSymbol(parser->sym_tab, label_trimmed))
+        {
+            parser->is_file_syntax_corrupt = TRUE;
+            /* We will add entry label anly on second pass. 
+            So any instance of finding a label exists in the table - means error */
+
+            printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
+            parser->source_file_name, parser->cur_line_num, label_trimmed);
+
+            return SYNT_ERR;
+        }
+
+        if (DIR_DEC == labeled_statement_type || DIR_ASCII == labeled_statement_type)
+        {
+            const char *dir = arg1;
+            symbol_t *new_symbol =  SymTabAddSymbol(parser->sym_tab, label_trimmed);
+            enum data_type data_type = DirToDataElementType(dir);
+
+            assert('.' == dir[0]);
+            assert(VOID != data_type);
+                            
+            if (!new_symbol || OK != SymTabSymbolSetData(parser->sym_tab, new_symbol, data_type))
+            {
+                fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
+                __LINE__, __FILE__);
+
+                return MEM_ERR;
+            }
+            
+            /*Case like Label: .dh 1, -7 */
+            if (DIR_DEC == labeled_statement_type)
+            {
+                size_t i = 0;
+
+                assert(ASCIZ != data_type);
+                assert(BYTE == data_type || HALF_WORD == data_type || WORD == data_type);
+
+                for (i = 2; DVECSize(args) > i; i += 2)
+                {
+                    const char *data = (const char *) DVECGetItemAddress(args, i);
+                    const long num_data = atol(data);
+
+                    assert(IsStringNum(data));
+
+                    if (OK != SymTabSymbolAddDataToDataVector(parser->sym_tab, new_symbol, data_type, &num_data))
+                    {
+                        fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
+                        __LINE__, __FILE__);
+
+                        return MEM_ERR;
+                    }
+                }
+            }
+            /*Case like Label: .asciz "printable_string" */
+            else if (DIR_ASCII == labeled_statement_type)
+            {
+                const char str_from_asciz[MAX_LINE_LEN] = {'\0'};
+                const char *asciz_arg = (const char *)DVECGetItemAddress(args, 2);
+                size_t str_len = -1;
+                size_t i = 0;
+
+                assert(ASCIZ == data_type);
+                assert(IsStringLegalAscizArg(asciz_arg));
+
+                AscizArgToString(asciz_arg, (char *)str_from_asciz);
+
+                str_len = strlen(str_from_asciz);
+                for (i = 0; i <= str_len; ++i)
+                {
+                    if (OK != SymTabSymbolAddDataToDataVector(parser->sym_tab, 
+                                new_symbol, data_type, str_from_asciz + i))
+                    {
+                        fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
+                        __LINE__, __FILE__);
+
+                        return MEM_ERR;
+                    }
+                }
+
+            }
+            else
+            {
+                assert(FALSE);
+            }
+        }
+        /* Case like Label: add $1,$2,$3 */
+        else if (IsInstruction(labeled_statement_type))
+        {
+            symbol_t *new_symbol = SymTabAddSymbol(parser->sym_tab, label_trimmed);
+            
+            assert(strlen(label_trimmed) > 0);
+            assert(parser->ic > 0);
+            /* was promoted on validation */
+            
+            SymTabSymbolSetCode(parser->sym_tab, new_symbol, parser->ic - 1);         
+        }
+
+        /*Case like Label0: .extern Label1 */
+        else if (DIR_QUALIF == labeled_statement_type && 0 == strcmp(extern_dir_str, arg1))
+        {
+            const char *label_qualified = DVECGetItemAddress(args, 2);
+
+            assert(IsStringLabel(label_qualified, FALSE));
+
+            if (SymTabHasSymbol(parser->sym_tab, label_qualified))
+            {
+                symbol_t *existing_symbol = SymTabGetSymbol(parser->sym_tab, label_qualified);
+                /* we will ignore setting Label as extern for the second time */
+                if (!SymTabSymbolIsExtern(parser->sym_tab, existing_symbol))
+                {
+                    parser->is_file_syntax_corrupt = TRUE;
+
+                    printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
+                    parser->source_file_name, parser->cur_line_num, label_qualified);
+
+                    return SYNT_ERR;
+                }
+
+            }
+            else 
+            {
+                /* add symbol, set extern */
+                symbol_t *new_symbol = SymTabAddSymbol(parser->sym_tab, label_trimmed);
+                if (!new_symbol)
+                {
+                    fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
+                    __LINE__, __FILE__);
+
+                    return MEM_ERR;
+                }
+
+                SymTabSymbolSetEntry(parser->sym_tab, new_symbol);
+            }
+
+        }
+    
+   }
+   /* case like .extern Label */
+   else if (DIR_QUALIF == statement_type && 0 == strcmp(extern_dir_str, arg0))
+   {
+        assert(!IsStringLabel(arg0, TRUE));
+        assert(IsStringLabel(arg1, FALSE));
+        /* label is without the terminating ':' */
+        assert(':' != arg0[strlen(arg0) - 1]);
+
+
+        if (SymTabHasSymbol(parser->sym_tab, arg1))
+        {
+            
+            symbol_t *existing_symbol = SymTabGetSymbol(parser->sym_tab, arg1);
+            if (!SymTabSymbolIsExtern(parser->sym_tab, existing_symbol))
+            {
+                parser->is_file_syntax_corrupt = TRUE;
+
+                printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
+                parser->source_file_name, parser->cur_line_num, arg1);
+            }
+        }
+        else 
+        {
+            /* add symbol, set extern */
+        }
+
+   }
+}
+
+void ParserSecondPass(parser_t *parser, dvec_t *args)
+{
+    /* if entry, update symbol to SymTab
+    if already extern = ERROR, Attempting to declare an extern as entry
+    syntax_corrupt = TRUE 
+    
+    if no such symbol - error - UNDEFINED entry*/
+/*
+    else if instruction{}
+    new_instruction = InstructionBuilderCreateInstructionR1(, 1, )
+
+    */
+
+    enum statement_type statement_type = 0;
+    int is_under_labe = FALSE;
+    const char *arg0 = NULL;
+    static const char *entry = ".entry";
+    size_t first_element_index = -1;
+    
+    assert(parser);
+    assert(args);
+
+    statement_type = WhatStatement(args, FALSE);
+    is_under_labe = (LABEL == statement_type);
+    first_element_index = is_under_labe ? 1 : 0;
+
+    statement_type = is_under_labe ? WhatStatement(args, TRUE) : statement_type;
+    arg0 = (const char *)DVECGetItemAddress(args, first_element_index);
+
+    if (DIR_QUALIF == statement_type && 0 == strcmp(entry, arg0))
+    {
+
+    }
+    else if (IsInstruction(statement_type))
+    {
+        size_t args_size = DVECSize(args) - first_element_index;
+        const char *arg1 = args_size > 1 ? DVECGetItemAddress(args, first_element_index + 1) : NULL;
+        const char *arg2 = args_size > 2 ? DVECGetItemAddress(args, first_element_index + 2) : NULL; /* comma */
+        const char *arg3 = args_size > 3 ? DVECGetItemAddress(args, first_element_index + 3) : NULL;
+        const char *arg4 = args_size > 4 ? DVECGetItemAddress(args, first_element_index + 1) : NULL; /* comma */
+        const char *arg5 = args_size > 5 ? DVECGetItemAddress(args, first_element_index + 5) : NULL;
+        word_t instruction_bit_arr = IBBadInstruction();
+
+        assert(IBIsBadInstruction(instruction_bit_arr));
+        assert(6 <= args_size); /* I count comma as an arg */
+
+        switch (statement_type)
+        {
+            /* add rs, rt, rd */
+        case R_3_ARG:
+
+           // instruction_bit_arr = IBCreateInstructionR3Args()
+            break;
+        case R_2_ARG:
+            /* code */
+            break;
+        case J_0_ARG:
+            /* code */
+            break;
+        case J_1_ARG:
+            /* code */
+            break;
+        case J_1_LABEL:
+            /* code */
+            break;
+        case I_COND:
+            /* code */
+            break;
+        case I_ARITH_LOG_MEM:
+            /* code */
+            break;
+        
+        default:
+            assert(FALSE);
+            break;
+        }
+    }
+    
+
+
+}
+
+int ParserFirstPass(parser_t *parser, dvec_t *args)
+{
+    enum statement_type statement_type = 0;
+    
+    #ifndef NDEBUG
+    {
+        int i = 0;
+        printf("line num: %lu , ic=%lu, syntax corrupt? %d", parser->cur_line_num, parser->ic, parser->is_file_syntax_corrupt);
+        for (;i < DVECSize(args); ++i)
+        {
+           printf("|%s| ", (const char *)DVECGetItemAddress(args, i));
+        }
+        puts("");
+    }
+    #endif
+
+    assert(parser);
+    assert(args);
+
+    statement_type = WhatStatement(args, FALSE);
+
+    ValidateLineArgs(parser, args, statement_type, FALSE);
+
+    if (!parser->is_file_syntax_corrupt)
+    {
+        if (MEM_ERR == FirstPassProcessLineArgs(parser, args)){
+            return MEM_ERR;
+        }
+    }
+
+    ++(parser->cur_line_num);
+}
+
+int ParserIsSyntaxCorrupt(const parser_t * parser)
+{
+    assert(parser);
+
+    /* Because we only assign enum of 0 or 1 to this lvalue  */
+    assert((FALSE == parser->is_file_syntax_corrupt) || (TRUE == parser->is_file_syntax_corrupt));
+
+    return parser->is_file_syntax_corrupt;
+}
+
+size_t ParserGetCurLineNum(const parser_t *parser)
+{
+    assert(parser);
+
+    return parser->cur_line_num;
+}
+
+
+size_t ParserGetIC(const parser_t *parser)
+{
+    assert(parser);
+
+    return parser->ic;
+}
+
+const char *ParserGetFileName(const parser_t *parser)
+{
+    assert(parser);
+    assert(parser->source_file_name);
+
+    return parser->source_file_name;
+}
+
+
+/* return if the syntax was failed. Fail the syntax */
+int ParserFailParser(parser_t *parser)
+{
+    int ret = 0;
+
+    assert(parser);
+
+    ret = ParserIsSyntaxCorrupt(parser);
+
+    parser->is_file_syntax_corrupt = TRUE;
+
+    return ret;
+}
+
+
+
+
+
+
+/************ Utility function definitions **********/
 
 /* 
     return registry index (0 to 31, incl.) 
@@ -1050,306 +1442,4 @@ static enum data_type DirToDataElementType(const char *directive)
 
         return VOID;
     }
-}
-
-/*
-The function is called after validator, for each line passed to parser on first pass.
-
- Fill symbol table with definitions and externs only!
-Because I want to keep dc in order.
-E.g. .entry mylabel may be defined before mylabel: [DEFINITION],\which will botch data count:
-for each definition, I keep the current sym_tab datacount. So on second pass the symbols address is 
-(total_ic * word_size + symbol_dc)
-
-
-return SYNT_ERR on syntax error (the caller will ignore)
-return MEM_ERR on memory error (the caller will stop the program)
-*/
-static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
-{
-    enum statement_type statement_type= -1;
-    static const char *extern_dir_str = ".extern";
-    char *arg0 = NULL;
-    char *arg1 = NULL;
-
-    assert(parser);
-    assert(args);
-    assert(!parser->is_file_syntax_corrupt);
-
-    arg0 = DVECGetItemAddress(args, 0);
-    arg1 = DVECGetItemAddress(args, 1);
-
-    statement_type = WhatStatement(args, FALSE);
-
-   /* like MyLalbel: ... */ 
-   if (LABEL == statement_type)
-   {
-        enum statement_type labeled_statement_type = WhatStatement(args, TRUE);
-        const char label_trimmed[MAX_LABEL_SIZE] = {'\0'};
-         
-        assert(IsStringLabel(arg0, TRUE));
-        assert(':' == arg0[strlen(arg0) - 1]);
-
-        /* copy the label without the terminating ':', e.g.: "MyLabel:" -> "MyLabel" */
-        strncpy((char *)label_trimmed, arg0, strlen(arg0) - 1);
-
-        if (SymTabHasSymbol(parser->sym_tab, label_trimmed))
-        {
-            parser->is_file_syntax_corrupt = TRUE;
-            /* We will add entry label anly on second pass. 
-            So any instance of finding a label exists in the table - means error */
-
-            printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
-            parser->source_file_name, parser->cur_line_num, label_trimmed);
-
-            return SYNT_ERR;
-        }
-
-        if (DIR_DEC == labeled_statement_type || DIR_ASCII == labeled_statement_type)
-        {
-            const char *dir = arg1;
-            symbol_t *new_symbol =  SymTabAddSymbol(parser->sym_tab, label_trimmed);
-            enum data_type data_type = DirToDataElementType(dir);
-
-            assert('.' == dir[0]);
-            assert(VOID != data_type);
-                            
-            if (!new_symbol || OK != SymTabSymbolSetData(parser->sym_tab, new_symbol, data_type))
-            {
-                fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
-                __LINE__, __FILE__);
-
-                return MEM_ERR;
-            }
-            
-            /*Case like Label: .dh 1, -7 */
-            if (DIR_DEC == labeled_statement_type)
-            {
-                size_t i = 0;
-
-                assert(ASCIZ != data_type);
-                assert(BYTE == data_type || HALF_WORD == data_type || WORD == data_type);
-
-                for (i = 2; DVECSize(args) > i; i += 2)
-                {
-                    const char *data = (const char *) DVECGetItemAddress(args, i);
-                    const long num_data = atol(data);
-
-                    assert(IsStringNum(data));
-
-                    if (OK != SymTabSymbolAddDataToDataVector(parser->sym_tab, new_symbol, data_type, &num_data))
-                    {
-                        fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
-                        __LINE__, __FILE__);
-
-                        return MEM_ERR;
-                    }
-                }
-            }
-            /*Case like Label: .asciz "printable_string" */
-            else if (DIR_ASCII == labeled_statement_type)
-            {
-                const char str_from_asciz[MAX_LINE_LEN] = {'\0'};
-                const char *asciz_arg = (const char *)DVECGetItemAddress(args, 2);
-                size_t str_len = -1;
-                size_t i = 0;
-
-                assert(ASCIZ == data_type);
-                assert(IsStringLegalAscizArg(asciz_arg));
-
-                AscizArgToString(asciz_arg, (char *)str_from_asciz);
-
-                str_len = strlen(str_from_asciz);
-                for (i = 0; i <= str_len; ++i)
-                {
-                    if (OK != SymTabSymbolAddDataToDataVector(parser->sym_tab, 
-                                new_symbol, data_type, str_from_asciz + i))
-                    {
-                        fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
-                        __LINE__, __FILE__);
-
-                        return MEM_ERR;
-                    }
-                }
-
-            }
-            else
-            {
-                assert(FALSE);
-            }
-        }
-        /* Case like Label: add $1,$2,$3 */
-        else if (IsInstruction(labeled_statement_type))
-        {
-            symbol_t *new_symbol = SymTabAddSymbol(parser->sym_tab, label_trimmed);
-            
-            assert(strlen(label_trimmed) > 0);
-            assert(parser->ic > 0);
-            /* was promoted on validation */
-            
-            SymTabSymbolSetCode(parser->sym_tab, new_symbol, parser->ic - 1);         
-        }
-
-        /*Case like Label0: .extern Label1 */
-        else if (DIR_QUALIF == labeled_statement_type && 0 == strcmp(extern_dir_str, arg1))
-        {
-            const char *label_qualified = DVECGetItemAddress(args, 2);
-
-            assert(IsStringLabel(label_qualified, FALSE));
-
-            if (SymTabHasSymbol(parser->sym_tab, label_qualified))
-            {
-                symbol_t *existing_symbol = SymTabGetSymbol(parser->sym_tab, label_qualified);
-                /* we will ignore setting Label as extern for the second time */
-                if (!SymTabSymbolIsExtern(parser->sym_tab, existing_symbol))
-                {
-                    parser->is_file_syntax_corrupt = TRUE;
-
-                    printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
-                    parser->source_file_name, parser->cur_line_num, label_qualified);
-
-                    return SYNT_ERR;
-                }
-
-            }
-            else 
-            {
-                /* add symbol, set extern */
-                symbol_t *new_symbol = SymTabAddSymbol(parser->sym_tab, label_trimmed);
-                if (!new_symbol)
-                {
-                    fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
-                    __LINE__, __FILE__);
-
-                    return MEM_ERR;
-                }
-
-                SymTabSymbolSetEntry(parser->sym_tab, new_symbol);
-            }
-
-        }
-    
-   }
-   /* case like .extern Label */
-   else if (DIR_QUALIF == statement_type && 0 == strcmp(extern_dir_str, arg0))
-   {
-        assert(!IsStringLabel(arg0, TRUE));
-        assert(IsStringLabel(arg1, FALSE));
-        /* label is without the terminating ':' */
-        assert(':' != arg0[strlen(arg0) - 1]);
-
-
-        if (SymTabHasSymbol(parser->sym_tab, arg1))
-        {
-            
-            symbol_t *existing_symbol = SymTabGetSymbol(parser->sym_tab, arg1);
-            if (!SymTabSymbolIsExtern(parser->sym_tab, existing_symbol))
-            {
-                parser->is_file_syntax_corrupt = TRUE;
-
-                printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
-                parser->source_file_name, parser->cur_line_num, arg1);
-            }
-        }
-        else 
-        {
-            /* add symbol, set extern */
-        }
-
-   }
-}
-
-void ParserSecondPass(parser_t *parrser, dvec_t *dvec, size_t line_num)
-{
-    /* if entry, update symbol to SymTab
-    if already extern = ERROR, Attempting to declare an extern as entry
-    syntax_corrupt = TRUE 
-    
-    if no such symbol - error - UNDEFINED entry*/
-/*
-    else if instruction{}
-    new_instruction = InstructionBuilderCreateInstructionR1(, 1, )
-
-    */
-}
-
-void ParserFirstPass(parser_t *parser, dvec_t *args, size_t line_num)
-{
-    enum statement_type statement_type = 0;
-    
-    #ifndef NDEBUG
-    {
-        int i = 0;
-        printf("line num: %lu , ic=%lu, syntax corrupt? %d", parser->cur_line_num, parser->ic, parser->is_file_syntax_corrupt);
-        for (;i < DVECSize(args); ++i)
-        {
-           printf("|%s| ", (const char *)DVECGetItemAddress(args, i));
-        }
-        puts("");
-    }
-    #endif
-
-    assert(parser);
-    assert(args);
-
-    (void)line_num;
-
-    statement_type = WhatStatement(args, FALSE);
-
-    ValidateLineArgs(parser, args, statement_type, FALSE);
-
-    if (!parser->is_file_syntax_corrupt)
-    {
-        FirstPassProcessLineArgs(parser, args);
-    }
-
-    ++(parser->cur_line_num);
-}
-
-int ParserIsSyntaxCorrupt(const parser_t * parser)
-{
-    assert(parser);
-
-    /* Because we only assign enum of 0 or 1 to this lvalue  */
-    assert((FALSE == parser->is_file_syntax_corrupt) || (TRUE == parser->is_file_syntax_corrupt));
-
-    return parser->is_file_syntax_corrupt;
-}
-
-size_t ParserGetCurLineNum(const parser_t *parser)
-{
-    assert(parser);
-
-    return parser->cur_line_num;
-}
-
-
-size_t ParserGetIC(const parser_t *parser)
-{
-    assert(parser);
-
-    return parser->ic;
-}
-
-const char *ParserGetFileName(const parser_t *parser)
-{
-    assert(parser);
-    assert(parser->source_file_name);
-
-    return parser->source_file_name;
-}
-
-
-/* return if the syntax was failed. Fail the syntax */
-int ParserFailParser(parser_t *parser)
-{
-    int ret = 0;
-
-    assert(parser);
-
-    ret = ParserIsSyntaxCorrupt(parser);
-
-    parser->is_file_syntax_corrupt = TRUE;
-
-    return ret;
 }

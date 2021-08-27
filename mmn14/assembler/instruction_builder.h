@@ -24,6 +24,7 @@ word_t IBCreateInstructionICond(const char *inst, int rs , int rt, size_t label_
 
 word_t IBCreateInstructionIArithLogMem(const char *inst, int rs , long immed , int rt);
 
+word_t IBBadInstruction();
 
 int IBIsBadInstruction(word_t instruction);
 

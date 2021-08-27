@@ -102,7 +102,8 @@ static int ProcessFile(const char *filepath)
 
         if (LINE_TOO_LONG == line_status)
         {
-            printf("WARNING: statement %s must be no longer than %d characters\n", line_buf, MAX_LINE_LEN - 1);
+            printf("WARNING: line %lu statement %s must be no longer than %d characters\n", 
+            ParserCurLineNum(parser), line_buf, MAX_LINE_LEN - 1);
             line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN - 1, SPACE_CHARS, ' ');
 
             ParserFailParser(parser);
@@ -128,7 +129,18 @@ static int ProcessFile(const char *filepath)
             return MEM_ERR;
         }
 
-        ParserFirstPass(parser, args_arr, -1);
+        if (MEM_ERR == ParserFirstPass(parser, args_arr))
+        {
+            ParserDestroy(parser, TRUE); parser = NULL;
+            ram = NULL;
+            sym_tab = NULL;
+            fclose(pfile); pfile = NULL;
+            fprintf(stderr, 
+            "MEMORY ERROR: Couldn't allocate memory, while running line %d in file %s\n", 
+            __LINE__, __FILE__);
+
+            return MEM_ERR;
+        }
 
         FileFreeArgs(args_arr);       
     }
@@ -140,6 +152,8 @@ static int ProcessFile(const char *filepath)
 
     if (!ParserIsSyntaxCorrupt(parser))
     {
+        ParserResetLineCount(parser);
+        rewind(pfile);
         
         /*
         while
