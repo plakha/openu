@@ -21,7 +21,29 @@ struct
     unsigned int opcode : 6;
     
 }
-r_t;
+r_instr_t;
+
+typedef
+struct 
+{
+    unsigned int immed : 16;
+    unsigned int rt : 5;
+    unsigned int rs : 5;
+    unsigned int opcode : 6;
+    
+}
+i_instr_t;
+
+typedef
+struct 
+{
+    
+    unsigned int address : 5;
+    unsigned int reg : 5;
+    unsigned int opcode : 6;
+    
+}
+j_instr_t;
 
 const word_t BAD_INSTRUCTION = {{0x0}}; /* all set to 0 */
 
@@ -42,7 +64,7 @@ word_t IBCreateInstructionR3Args(const char *inst,int rs, int rt, int rd)
     int func = -1;
     static const int unused = 0;
   
-    r_t new_instruction = {0};
+    r_instr_t new_instruction = {0};
 
     if (0 == strcmp(inst, add))
     {

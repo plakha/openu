@@ -379,7 +379,7 @@ void ParserSecondPass(parser_t *parser, dvec_t *args)
             /* add rs, rt, rd */
         case R_3_ARG:
 
-           // instruction_bit_arr = IBCreateInstructionR3Args()
+           /* instruction_bit_arr = IBCreateInstructionR3Args()*/
             break;
         case R_2_ARG:
             /* code */
