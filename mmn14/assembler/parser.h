@@ -21,6 +21,7 @@ typedef struct parser parser_t;
 parser_t *ParserCreate(const char *source_file_name, ram_t *ram, sym_tab_t *sym_tab);
 
 int ParserFirstPass(parser_t *parser, dvec_t *args);
+int ParserSecondPass(parser_t *parser, dvec_t *args);
 
 int ParserIsSyntaxCorrupt(const parser_t * parser);
 

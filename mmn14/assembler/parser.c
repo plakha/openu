@@ -19,7 +19,8 @@ enum {FALSE = 0, TRUE};
 
 struct  parser /* file parser */
 {
-    size_t ic;
+    size_t ic; /* to count instructions on first pass */
+    size_t sec_pass_instr_num; /* to keep the current instruction index on second pass */
 
     size_t cur_line_num;
     
@@ -82,6 +83,7 @@ parser_t *ParserCreate(const char *source_file_name, ram_t *ram, sym_tab_t *sym_
     }
 
     new_parser->ic = 0;
+    new_parser->sec_pass_instr_num = 0; /* will be used for second pass */
     new_parser->source_file_name = source_file_name;
     new_parser->cur_line_num = 1;
     new_parser->ram = ram;
@@ -114,11 +116,12 @@ size_t ParserCurLineNum(const parser_t *parser)
     return parser->cur_line_num;
 }
 
+/* call after the first, before second pass */
 void ParserResetLineCount(parser_t *parser)
 {
     assert(parser);
 
-    parser->cur_line_num = 0;
+    parser->cur_line_num = 1;
 }
 
 /*
@@ -328,7 +331,8 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
    }
 }
 
-void ParserSecondPass(parser_t *parser, dvec_t *args)
+/* return MEM_ERR, SNT_ERR, OK */
+int ParserSecondPass(parser_t *parser, dvec_t *args)
 {
     /* if entry, update symbol to SymTab
     if already extern = ERROR, Attempting to declare an extern as entry
@@ -336,9 +340,9 @@ void ParserSecondPass(parser_t *parser, dvec_t *args)
     
     if no such symbol - error - UNDEFINED entry*/
 /*
-    else if instruction{}
-    new_instruction = InstructionBuilderCreateInstructionR1(, 1, )
-
+    else if instruction{
+    new_instruction = InstructionBuilderCreateInstruction()
+    }
     */
 
     enum statement_type statement_type = 0;
@@ -346,6 +350,8 @@ void ParserSecondPass(parser_t *parser, dvec_t *args)
     const char *arg0 = NULL;
     static const char *entry = ".entry";
     size_t first_element_index = -1;
+    size_t args_size = -1;
+
     
     assert(parser);
     assert(args);
@@ -353,21 +359,42 @@ void ParserSecondPass(parser_t *parser, dvec_t *args)
     statement_type = WhatStatement(args, FALSE);
     is_under_labe = (LABEL == statement_type);
     first_element_index = is_under_labe ? 1 : 0;
+    args_size = DVECSize(args) - first_element_index;
 
     statement_type = is_under_labe ? WhatStatement(args, TRUE) : statement_type;
     arg0 = (const char *)DVECGetItemAddress(args, first_element_index);
 
+    /* like .entry an_existing_label */
     if (DIR_QUALIF == statement_type && 0 == strcmp(entry, arg0))
-    {
+    {   
+        const char *arg1 = NULL;
+
+        assert(2 == args_size);
+
+        arg1 = DVECGetItemAddress(args, first_element_index + 1);
+        assert(IsStringLabel(arg1, FALSE));
+
+        if (SymTabHasSymbol(parser->sym_tab, arg1))
+        {
+            symbol_t *symbol = SymTabGetSymbol(parser->sym_tab, arg1);
+
+        }
+        else
+        {
+
+        }
+
 
     }
     else if (IsInstruction(statement_type))
     {
-        size_t args_size = DVECSize(args) - first_element_index;
+        #ifndef NDEBUG
+        static const char *comma = ",";
+        #endif
         const char *arg1 = args_size > 1 ? DVECGetItemAddress(args, first_element_index + 1) : NULL;
         const char *arg2 = args_size > 2 ? DVECGetItemAddress(args, first_element_index + 2) : NULL; /* comma */
         const char *arg3 = args_size > 3 ? DVECGetItemAddress(args, first_element_index + 3) : NULL;
-        const char *arg4 = args_size > 4 ? DVECGetItemAddress(args, first_element_index + 1) : NULL; /* comma */
+        const char *arg4 = args_size > 4 ? DVECGetItemAddress(args, first_element_index + 4) : NULL; /* comma */
         const char *arg5 = args_size > 5 ? DVECGetItemAddress(args, first_element_index + 5) : NULL;
         word_t instruction_bit_arr = IBBadInstruction();
 
@@ -376,38 +403,165 @@ void ParserSecondPass(parser_t *parser, dvec_t *args)
 
         switch (statement_type)
         {
-            /* add rs, rt, rd */
-        case R_3_ARG:
+        case R_3_ARG: /*like add rs, rt, rd */
+            assert(6 == args_size);
+            assert(IsStringRegistry(arg1)); /* rs */
+            assert(0 == strcmp(comma, arg2));
+            assert(IsStringRegistry(arg3));/* rt */
+            assert(0 == strcmp(comma, arg4));
+            assert(IsStringRegistry(arg5));/* rd */
 
-           /* instruction_bit_arr = IBCreateInstructionR3Args()*/
+            instruction_bit_arr = IBCreateInstructionR3Args(arg0, StringToRegistry(arg1), 
+                                    StringToRegistry(arg3), StringToRegistry(arg5));
+           
             break;
-        case R_2_ARG:
-            /* code */
+        case R_2_ARG: /* like move rs, rd */
+            assert(4 == args_size);
+            assert(IsStringRegistry(arg1)); /* rs */
+            assert(0 == strcmp(comma, arg2));
+            assert(IsStringRegistry(arg3)); /* rd */
+            assert(!arg4 && !arg5);
+
+
+            instruction_bit_arr = IBCreateInstructionR2Args(arg0, StringToRegistry(arg1), 
+                                    StringToRegistry(arg3));
+
             break;
-        case J_0_ARG:
-            /* code */
+        case J_0_ARG: /* stop */
+            assert(1 == args_size);
+            assert(!arg1 && !arg2 && !arg3 && !arg4 && !arg5);
+
+            instruction_bit_arr = IBCreateInstructionJ0Args(arg0);
             break;
-        case J_1_ARG:
-            /* code */
+        case J_1_ARG:/* like jmp reg_num */
+            assert(2 == args_size);
+            assert(IsStringRegistry(arg1));
+            assert(!arg2 && !arg3 && !arg4 && !arg5);
+
+            instruction_bit_arr = IBCreateInstructionJ1Args(arg0, StringToRegistry(arg1));            
             break;
-        case J_1_LABEL:
-            /* code */
+        case J_1_LABEL: /* like jmp my_label */
+
+            assert(2 == args_size);
+            assert(IsStringLabel(arg1, FALSE));
+            assert(!arg2 && !arg3 && !arg4 && !arg5);
+
+            if (SymTabHasSymbol(parser->sym_tab, arg1))
+            {
+                size_t refered_addr = 0;
+                symbol_t *symbol = SymTabGetSymbol(parser->sym_tab, arg1);
+                if (!SymTabSymbolIsExtern(parser->sym_tab, symbol))
+                {
+                    if (!SymTabSymbolIsCode(parser->sym_tab, symbol))
+                    {
+                        printf("ERROR in source file %s, line %ld: attemted jump to a non-code label %s\n", 
+                        parser->source_file_name, parser->cur_line_num, arg1);
+
+                        ParserFailParser(parser);
+
+                        return SYNT_ERR;
+                    }
+                    refered_addr = SymTabGetICDeclared(parser->sym_tab, symbol) * sizeof(word_t) + RAM_START_ADDRESS;
+                    /*The index of instruction (instruction size is word) + the code segment location in RAM ()*/
+                }
+                else
+                {
+                    SymTabSymbolAddReferingInstr(parser->sym_tab, symbol, 4 * parser->sec_pass_instr_num + RAM_START_ADDRESS);
+                }
+
+                instruction_bit_arr = IBCreateInstructionJ1Label(arg0, refered_addr);
+            }
+            else
+            {
+                printf("ERROR in source file %s, line %ld: reference of an undefined, non-extern label %s\n", 
+                parser->source_file_name, parser->cur_line_num, arg1);
+
+                return SYNT_ERR;
+            }
             break;
-        case I_COND:
-            /* code */
+        case I_COND: /* like blt rs,rt,code_label */
+            assert(6 == args_size);
+            assert(IsStringRegistry(arg1)); /* rs */
+            assert(0 == strcmp(comma, arg2));
+            assert(IsStringRegistry(arg3)); /* rt */
+            assert(0 == strcmp(comma, arg4));
+            assert(IsStringLabel(arg5, FALSE));
+
+            if (SymTabHasSymbol(parser->sym_tab, arg5))
+            {
+                long jump_distance = (unsigned long)(-1) / 2 - 1; /* max_long */
+                symbol_t *symbol = SymTabGetSymbol(parser->sym_tab, arg5);
+                if (!SymTabSymbolIsExtern(parser->sym_tab, symbol))
+                {
+                    if (!SymTabSymbolIsCode(parser->sym_tab, symbol))
+                    {
+                        printf("ERROR in source file %s, line %ld: attemted conditional jump to a non-code label %s\n", 
+                        parser->source_file_name, parser->cur_line_num, arg5);
+
+                        ParserFailParser(parser);
+
+                        return SYNT_ERR;
+                    }
+                    jump_distance = (SymTabGetICDeclared(parser->sym_tab, symbol) - parser->sec_pass_instr_num) * sizeof(word_t);
+                    if ((I_INSTR_MAX_JUMP < jump_distance) || (I_INSTR_MIN_JUMP > jump_distance))
+                    {
+                        printf("ERROR in source file %s, line %ld: attemted conditional jump to label %s, with distance greater then %ld or less then %ld\n", 
+                        parser->source_file_name, parser->cur_line_num, arg5, I_INSTR_MAX_JUMP, I_INSTR_MIN_JUMP);
+
+                        ParserFailParser(parser);
+
+                        return SYNT_ERR;
+                    }
+                }
+                else
+                {
+                    SymTabSymbolAddReferingInstr(parser->sym_tab, symbol, 4 * parser->sec_pass_instr_num + RAM_START_ADDRESS);
+                }
+
+                instruction_bit_arr = IBCreateInstructionICond(arg5, StringToRegistry(arg1), StringToRegistry(arg3), jump_distance);
+            }
+            else
+            {
+                printf("ERROR in source file %s, line %ld: reference of an undefined, non-extern label %s\n", 
+                parser->source_file_name, parser->cur_line_num, arg5);
+
+                return SYNT_ERR;
+            }
+
             break;
-        case I_ARITH_LOG_MEM:
-            /* code */
+        case I_ARITH_LOG_MEM: /* like lh rs, immed, rt */
+            assert(6 == args_size);
+            assert(IsStringRegistry(arg1)); /* rs */
+            assert(0 == strcmp(comma, arg2));
+            assert(IsStringNum(arg3)); /* immed */
+            assert(0 == strcmp(comma, arg4));
+            assert(IsStringRegistry(arg5)); /* rt */
+
+            instruction_bit_arr = IBCreateInstructionIArithLogMem(arg0, StringToRegistry(arg1), atol(arg3), StringToRegistry(arg5));
+
             break;
         
         default:
             assert(FALSE);
             break;
         }
+
+        if (OK != RAMPushWord(parser->ram, &instruction_bit_arr))
+        {
+            fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
+            __LINE__, __FILE__);
+
+            return MEM_ERR;
+        }
+        ++(parser->sec_pass_instr_num);
+
+        assert(RAMSize(parser->ram) == parser->sec_pass_instr_num);
+
+        return OK;
     }
     
-
-
+    ++(parser->cur_line_num);
+    assert(parser->ic > parser->sec_pass_instr_num);
 }
 
 int ParserFirstPass(parser_t *parser, dvec_t *args)

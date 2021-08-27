@@ -52,6 +52,25 @@ word_t IBBadInstruction()
     return BAD_INSTRUCTION;
 }
 
+
+int IBIsBadInstruction(word_t instruction)
+{
+    return IBIsSameWord(BAD_INSTRUCTION, instruction);
+}
+
+int IBIsSameWord(word_t word1, word_t word2)
+{   
+    unsigned int i = 0;
+    int ret = 1;
+
+    for (;i < SIZE_OF_WORD; ++i)
+    {
+        ret = (ret && (word1.bytes[i] == word2.bytes[i]));
+    }
+    
+    return ret;
+}
+
 word_t IBCreateInstructionR3Args(const char *inst,int rs, int rt, int rd)
 {
     static const char *add = "add";
@@ -103,20 +122,272 @@ word_t IBCreateInstructionR3Args(const char *inst,int rs, int rt, int rd)
     
 }
 
-int IBIsBadInstruction(word_t instruction)
+
+word_t IBCreateInstructionR2Args(const char *inst, int rs, int rd)
 {
-    return IBIsSameWord(BAD_INSTRUCTION, instruction);
-}
+    static const char *move = "move";
+    static const char *mvhi = "mvhi";
+    static const char *mvlo = "mvlo";
 
-int IBIsSameWord(word_t word1, word_t word2)
-{   
-    unsigned int i = 0;
-    int ret = 1;
+    static const int opcode = 1;
+    int func = -1;
+    static const int rt = 0;
+    static const int unused = 0;
+  
+    r_instr_t new_instruction = {0};
 
-    for (;i < SIZE_OF_WORD; ++i)
+    if (0 == strcmp(inst, move))
     {
-        ret = (ret && (word1.bytes[i] == word2.bytes[i]));
+        func = 1;
     }
+    else if (0 == strcmp(inst, mvhi))
+    {
+        func = 2;
+    } 
+    else if (0 == strcmp(inst, mvlo))
+    {
+        func = 3;
+    }
+     else
+    {
+        assert(0);
+        return BAD_INSTRUCTION;
+    }
+
+    new_instruction.unused = unused;
+    new_instruction.func = func;
+    new_instruction.rd = rd;
+    new_instruction.rt = rt;
+    new_instruction.rs = rs;
+    new_instruction.opcode = opcode;
+
+    return *(word_t *)&new_instruction;
     
-    return ret;
 }
+
+word_t IBCreateInstructionICond(const char *inst, int rs, int rt, long jmp_distance)
+{
+    static const char *beq = "beq";
+    static const char *bne = "bne";
+    static const char *blt = "blt";
+    static const char *bgt = "bgt";
+
+
+    int opcode = -1;
+  
+    i_instr_t new_instruction = {0};
+
+    if (0 == strcmp(inst, beq))
+    {
+        opcode = 16;
+    }
+    else if (0 == strcmp(inst, bne))
+    {
+        opcode = 15;
+    } 
+    else if (0 == strcmp(inst, blt))
+    {
+        opcode = 17;
+    }
+    else if (0 == strcmp(inst, bgt))
+    {
+        opcode = 18;
+    }
+    else
+    {
+        assert(0);
+        return BAD_INSTRUCTION;
+    }
+
+    new_instruction.immed = jmp_distance;
+    new_instruction.rt = rt;
+    new_instruction.rs = rs;
+    new_instruction.opcode = opcode;
+
+    return *(word_t *)&new_instruction;
+    
+}
+
+word_t IBCreateInstructionIArithLogMem(const char *inst, int rs, long immed, int rt)
+{
+    static const char *addi = "addi";
+    static const char *subi = "subi";
+    static const char *andi = "andi";
+    static const char *ori = "ori";
+    static const char *nori = "nori";
+    static const char *lb = "lb";
+    static const char *sb = "sb";
+    static const char *lw = "lw";
+    static const char *sw = "sw";
+    static const char *lh = "lh";
+    static const char *sh = "sh";
+    
+    int opcode = -1;
+  
+    i_instr_t new_instruction = {0};
+
+    if (0 == strcmp(inst, addi))
+    {
+        opcode = 10;
+    }
+    else if (0 == strcmp(inst, subi))
+    {
+        opcode = 11;
+    } 
+    else if (0 == strcmp(inst, andi))
+    {
+        opcode = 12;
+    }
+    else if (0 == strcmp(inst, ori))
+    {
+        opcode = 13;
+    }
+    if (0 == strcmp(inst, nori))
+    {
+        opcode = 14;
+    }
+    else if (0 == strcmp(inst, lb))
+    {
+        opcode = 19;
+    } 
+    else if (0 == strcmp(inst, sb))
+    {
+        opcode = 20;
+    }
+    else if (0 == strcmp(inst, lw))
+    {
+        opcode = 21;
+    }
+    if (0 == strcmp(inst, sw))
+    {
+        opcode = 22;
+    }
+    else if (0 == strcmp(inst, lh))
+    {
+        opcode = 23;
+    } 
+    else if (0 == strcmp(inst, sh))
+    {
+        opcode = 24;
+    }
+    else
+    {
+        assert(0);
+        return BAD_INSTRUCTION;
+    }
+
+    new_instruction.immed = immed;
+    new_instruction.rt = rt;
+    new_instruction.rs = rs;
+    new_instruction.opcode = opcode;
+
+    return *(word_t *)&new_instruction;
+    
+}
+
+word_t IBCreateInstructionJ0Args(const char *inst)
+{
+    static const char *stop = "stop";
+   
+    static const int reg = 0;
+    static const size_t address = 0;
+    int opcode = -1;
+  
+    j_instr_t new_instruction = {0};
+
+    if (0 == strcmp(inst, stop))
+    {
+        opcode = 63;
+    }
+    else
+    {
+        assert(0);
+        return BAD_INSTRUCTION;
+    }
+
+   
+    new_instruction.reg = reg;
+    new_instruction.address = address;
+    new_instruction.opcode = opcode;
+
+    return *(word_t *)&new_instruction;
+    
+}
+
+word_t IBCreateInstructionJ1Args(const char *inst, int reg)
+{
+    static const char *jmp = "jmp";
+    static const char *la = "la";
+    static const char *call = "call";
+    
+    int opcode = -1;
+  
+    j_instr_t new_instruction = {0};
+
+    if (0 == strcmp(inst, jmp))
+    {
+        opcode = 30;
+    }
+    if (0 == strcmp(inst, la))
+    {
+        opcode = 31;
+    }
+    if (0 == strcmp(inst, call))
+    {
+        opcode = 32;
+    }
+    else
+    {
+        assert(0);
+        return BAD_INSTRUCTION;
+    }
+
+    new_instruction.reg = 1;
+    new_instruction.address = reg;
+    new_instruction.opcode = opcode;
+
+    return *(word_t *)&new_instruction;
+    
+}
+
+word_t IBCreateInstructionJ1Label(const char *inst, size_t label_address)
+{
+    static const char *jmp = "jmp";
+    static const char *la = "la";
+    static const char *call = "call";
+    
+    int opcode = -1;
+  
+    j_instr_t new_instruction = {0};
+
+    if (0 == strcmp(inst, jmp))
+    {
+        opcode = 30;
+    }
+    if (0 == strcmp(inst, la))
+    {
+        opcode = 31;
+    }
+    if (0 == strcmp(inst, call))
+    {
+        opcode = 32;
+    }
+    else
+    {
+        assert(0);
+        return BAD_INSTRUCTION;
+    }
+
+   
+    new_instruction.reg = 0;
+    new_instruction.address = label_address ;
+    new_instruction.opcode = opcode;
+
+    return *(word_t *)&new_instruction;
+    
+}
+
+
+
+
+

@@ -1,3 +1,6 @@
+#define I_INSTR_MAX_JUMP ((1l << 15) - 1)
+#define I_INSTR_MIN_JUMP (-(1l << 15))
+
 #ifndef INSTRUCTION_BUILDER_H
 #define INSTRUCTION_BUILDER_H
 /* the library name spave will be IB... */
@@ -19,7 +22,7 @@ word_t IBCreateInstructionJ1Args(const char *inst, int reg);
 /* receives address to which the Label refers */
 word_t IBCreateInstructionJ1Label(const char *inst, size_t label_address);
 
-word_t IBCreateInstructionICond(const char *inst, int rs , int rt, size_t label_address);
+word_t IBCreateInstructionICond(const char *inst, int rs , int rt, long jump_distance);
 
 
 word_t IBCreateInstructionIArithLogMem(const char *inst, int rs , long immed , int rt);

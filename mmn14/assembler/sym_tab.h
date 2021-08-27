@@ -24,6 +24,10 @@ int SymTabSymbolSetCode(sym_tab_t *sym_tab, symbol_t *symbol, size_t instruction
 int SymTabSymbolSetEntry(sym_tab_t *sym_tab, symbol_t *symbol);
 int SymTabSymbolSetExtern(sym_tab_t *sym_tab, symbol_t *symbol);
 
+size_t SymTabGetICDeclared(const sym_tab_t *sym_tab, const symbol_t *symbol);
+
+int SymTabSymbolAddReferingInstr(sym_tab_t *sym_tab, symbol_t *symbol, size_t instr_addr);
+
 
 int SymTabSymbolAddDataToDataVector(sym_tab_t *sym_tab, symbol_t *symbol, enum data_type data_type, const void *data);
 

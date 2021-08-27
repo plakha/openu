@@ -41,7 +41,7 @@ struct symbol
     size_t ic_declared;
 
     /* fill in second pass. For extern only. */
-    dvec_t *ic_referenced;
+    dvec_t *arr_instr_referencing;
   
     /* for data only */
     enum data_type data_type;
@@ -138,6 +138,27 @@ int SymTabHasSymbol(const sym_tab_t *sym_tab, const char *label)
     assert(label);    
     
     return NULL != SymTabGetSymbol((sym_tab_t *)sym_tab, label);
+}
+
+size_t SymTabGetICDeclared(const sym_tab_t *sym_tab, const symbol_t *symbol)
+{
+    assert(sym_tab);
+    assert(symbol);
+
+    assert(symbol->is_code);
+    assert(-1 != symbol->ic_declared);
+
+    return symbol->ic_declared;
+}
+
+int SymTabSymbolAddReferingInstr(sym_tab_t *sym_tab, symbol_t *symbol, size_t instr_addr)
+{
+    assert(sym_tab);
+    assert(symbol);
+    assert(symbol->is_extern);
+    assert(symbol->arr_instr_referencing);
+
+    return DVECPushBack(symbol->arr_instr_referencing, &instr_addr);
 }
 
 symbol_t *SymTabGetSymbol(sym_tab_t *sym_tab, const char *label)
@@ -254,7 +275,7 @@ symbol_t *SymTabAddSymbol(sym_tab_t *sym_tab, const char label[])
     new_symbol->dc_declared = -1;
     new_symbol->ic_declared = -1;
 
-    new_symbol->ic_referenced = NULL; /* will be set if symbol declared extern */
+    new_symbol->arr_instr_referencing = NULL; /* will be set if symbol declared extern */
 
     new_symbol->data_type = VOID;
     new_symbol->data_vector = NULL;
@@ -282,7 +303,7 @@ int SymTabSymbolSetData(sym_tab_t *sym_tab, symbol_t *symbol, enum data_type dat
     assert(!symbol->is_entry);
     assert(VOID != data_type);
     assert(!symbol->is_extern);
-    assert(NULL == symbol->ic_referenced);
+    assert(NULL == symbol->arr_instr_referencing);
 
 
 
@@ -314,7 +335,7 @@ int SymTabSymbolSetCode(sym_tab_t *sym_tab, symbol_t *symbol, size_t instruction
     assert(!symbol->is_entry);
     assert(VOID == symbol->data_type);
     assert(NULL == symbol->data_vector);
-    assert(NULL == symbol->ic_referenced);
+    assert(NULL == symbol->arr_instr_referencing);
     assert(!symbol->is_data);
     assert(!symbol->is_extern);
     /* Should not be set twice */
@@ -327,7 +348,13 @@ int SymTabSymbolSetCode(sym_tab_t *sym_tab, symbol_t *symbol, size_t instruction
 
 int SymTabSymbolSetEntry(sym_tab_t *sym_tab, symbol_t *symbol)
 {
+    assert(sym_tab);
+    assert(symbol);
 
+    assert(!symbol->is_extern);
+    assert(NULL == symbol->arr_instr_referencing);
+
+    return OK;
 }
 
 int SymTabSymbolSetExtern(sym_tab_t *sym_tab, symbol_t *symbol)
@@ -342,10 +369,12 @@ int SymTabSymbolSetExtern(sym_tab_t *sym_tab, symbol_t *symbol)
 
     /* Should not be set twice */
     assert(!symbol->is_extern);
-    assert(NULL == symbol->ic_referenced);
+    assert(NULL == symbol->arr_instr_referencing);
 
     symbol->is_extern = TRUE;
-    symbol->ic_referenced = DVECCreate(sizeof(size_t), 0);
+    symbol->arr_instr_referencing = DVECCreate(sizeof(size_t), 0);
+
+    return NULL == symbol->arr_instr_referencing ? !OK : OK;
 }
 
 int SymTabSymbolAddDataToDataVector(sym_tab_t *sym_tab, symbol_t *symbol, enum data_type data_type, const void *data)
@@ -399,10 +428,10 @@ static int UtilDestroySymbol(void *data,const void *params)
         symbol->data_vector = NULL;
     }
 
-    if (symbol->ic_referenced)
+    if (symbol->arr_instr_referencing)
     {
-        DVECDestroy(symbol->ic_referenced);
-        symbol->ic_referenced = NULL;
+        DVECDestroy(symbol->arr_instr_referencing);
+        symbol->arr_instr_referencing = NULL;
     }
 
     free(symbol);
