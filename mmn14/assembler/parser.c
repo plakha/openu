@@ -10,7 +10,7 @@
 
 #include "parser.h"
 
-#define CMD_LEN (5)
+/* #define CMD_LEN (5)*/
 #define COMMA_STR (",")
 #define MAX_LABEL_SIZE (31)
 
