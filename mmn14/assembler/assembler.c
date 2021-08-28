@@ -103,7 +103,7 @@ static int ProcessFile(const char *filepath)
         if (LINE_TOO_LONG == line_status)
         {
             printf("WARNING: line %lu statement %s must be no longer than %d characters\n", 
-            ParserCurLineNum(parser), line_buf, MAX_LINE_LEN - 1);
+            (unsigned long)ParserCurLineNum(parser), line_buf, MAX_LINE_LEN - 1);
             line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN - 1, SPACE_CHARS, ' ');
 
             ParserFailParser(parser);
@@ -315,7 +315,6 @@ static char *GetExtensionlessFileName(const char *filepath, char *filename_buf)
     new_len = strlen(filepath) - param_ext_len;
 
     strncpy(filename_buf, filepath, new_len);
-    filename_buf[new_len - 1] = '\0';
     
     return filename_buf;
 }
