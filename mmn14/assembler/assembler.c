@@ -103,7 +103,7 @@ static int ProcessFile(const char *filepath)
         if (LINE_TOO_LONG == line_status)
         {
             printf("WARNING: line %lu statement %s must be no longer than %d characters\n", 
-            (unsigned long)ParserCurLineNum(parser), line_buf, MAX_LINE_LEN - 1);
+            ParserCurLineNum(parser), line_buf, MAX_LINE_LEN - 1);
             line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN - 1, SPACE_CHARS, ' ');
 
             ParserFailParser(parser);

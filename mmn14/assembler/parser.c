@@ -109,7 +109,7 @@ void ParserDestroy(parser_t *parser, int should_destroy_passed_entities)
     parser = NULL;
 }
 
-size_t ParserCurLineNum(const parser_t *parser)
+unsigned long ParserCurLineNum(const parser_t *parser)
 {
     assert(parser);
 

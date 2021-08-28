@@ -44,7 +44,7 @@ const char *ParserGetFileName(const parser_t *parser);
 /* Force parser into believing syntax is failed. Returns non-zero if it was already failed. Returns 0 otherwise */
 int ParserFailParser(parser_t *parser);
 
-size_t ParserCurLineNum(const parser_t *parser);
+unsigned long ParserCurLineNum(const parser_t *parser);
 
 void ParserResetLineCount(parser_t *parser);
 
