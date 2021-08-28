@@ -35,16 +35,16 @@ int ParserIsSyntaxCorrupt(const parser_t * parser);
 
 void ParserDestroy(parser_t *parser, int should_destroy_passed_entities);
 
-size_t ParserGetCurLineNum(const parser_t *parser);
-
-size_t ParserGetIC(const parser_t *parser);
+unsigned long ParserGetIC(const parser_t *parser);
 
 const char *ParserGetFileName(const parser_t *parser);
 
 /* Force parser into believing syntax is failed. Returns non-zero if it was already failed. Returns 0 otherwise */
 int ParserFailParser(parser_t *parser);
 
-unsigned long ParserCurLineNum(const parser_t *parser);
+
+unsigned long ParserGetCurLineNum(const parser_t *parser);
+
 
 void ParserResetLineCount(parser_t *parser);
 

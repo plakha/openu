@@ -58,7 +58,7 @@ word_t *RAMGetIthWord(const ram_t *ram, size_t i)
     return (word_t *)DVECGetItemAddress(ram->word_arr, i);
 }
 
-size_t RAMSize(const ram_t *ram)
+unsigned long RAMSize(const ram_t *ram)
 {
     size_t ram_size = -1;
 

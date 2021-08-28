@@ -17,7 +17,7 @@ after the (n + k)'th symbol has been declared */
 struct sym_tab
 {
     dll_t *symbol_table;
-    size_t dc;
+    unsigned long dc;
 };
 
 
@@ -35,10 +35,10 @@ struct symbol
     bool is_code;
 
     /* for data. if code, default to -1 */
-    size_t dc_declared;
+    unsigned long dc_declared;
 
     /* for code. If data, default to -1 */
-    size_t ic_declared;
+    unsigned long ic_declared;
 
     /* fill in second pass. For extern only. */
     dvec_t *arr_instr_referencing;
@@ -140,7 +140,7 @@ int SymTabHasSymbol(const sym_tab_t *sym_tab, const char *label)
     return NULL != SymTabGetSymbol((sym_tab_t *)sym_tab, label);
 }
 
-size_t SymTabGetICDeclared(const sym_tab_t *sym_tab, const symbol_t *symbol)
+unsigned long SymTabGetICDeclared(const sym_tab_t *sym_tab, const symbol_t *symbol)
 {
     assert(sym_tab);
     assert(symbol);
@@ -161,7 +161,7 @@ int SymTabSymbolAddReferingInstr(sym_tab_t *sym_tab, symbol_t *symbol, size_t in
     return DVECPushBack(symbol->arr_instr_referencing, &instr_addr);
 }
 
-size_t SymTabDataSymbolRelativeAddress(const sym_tab_t *sym_tab, const symbol_t *symbol)
+unsigned long SymTabDataSymbolRelativeAddress(const sym_tab_t *sym_tab, const symbol_t *symbol)
 {
     assert(sym_tab);
     assert(symbol);

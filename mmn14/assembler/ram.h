@@ -17,7 +17,7 @@ int RAMPushWord(ram_t *ram, const word_t *word);
 
 word_t *RAMGetIthWord(const ram_t *ram, size_t i);
 
-size_t RAMSize(const ram_t *ram);
+unsigned long RAMSize(const ram_t *ram);
 
 void RAMDestroy(ram_t *ram);
 

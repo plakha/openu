@@ -19,10 +19,10 @@ enum {FALSE = 0, TRUE};
 
 struct  parser /* file parser */
 {
-    size_t ic; /* to count instructions on first pass */
-    size_t sec_pass_instr_num; /* to keep the current instruction index on second pass */
+    unsigned long ic; /* to count instructions on first pass */
+    unsigned long sec_pass_instr_num; /* to keep the current instruction index on second pass */
 
-    size_t cur_line_num;
+    unsigned long cur_line_num;
     
     const char *source_file_name;
     ram_t *ram;
@@ -109,12 +109,6 @@ void ParserDestroy(parser_t *parser, int should_destroy_passed_entities)
     parser = NULL;
 }
 
-unsigned long ParserCurLineNum(const parser_t *parser)
-{
-    assert(parser);
-
-    return parser->cur_line_num;
-}
 
 /* call after the first, before second pass */
 void ParserResetLineCount(parser_t *parser)
@@ -669,7 +663,7 @@ int ParserIsSyntaxCorrupt(const parser_t * parser)
     return parser->is_file_syntax_corrupt;
 }
 
-size_t ParserGetCurLineNum(const parser_t *parser)
+unsigned long ParserGetCurLineNum(const parser_t *parser)
 {
     assert(parser);
 
@@ -677,7 +671,7 @@ size_t ParserGetCurLineNum(const parser_t *parser)
 }
 
 
-size_t ParserGetIC(const parser_t *parser)
+unsigned long ParserGetIC(const parser_t *parser)
 {
     assert(parser);
 
