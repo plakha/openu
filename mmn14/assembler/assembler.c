@@ -20,7 +20,8 @@ static int ProcessFile(const char *filepath);
 static int CheckUsage(int num_filepaths, const char *filepaths[]);
 static int CheckFileName(const char *filename);
 
-static void GetFileName(const char *filepaths, char *filename_buf);
+static char *GetExtensionlessFileName(const char *filepath, char *filename_buf);
+static int CreateObjFile(const char *extensionless_filename, const parser_t *parser, const ram_t *ram, const sym_tab_t *sym_tab);
 
 int main(int argc, char const *argv[])
 {
@@ -48,7 +49,6 @@ int main(int argc, char const *argv[])
 static int ProcessFile(const char *filepath)
 {
     int file_status = CheckFileName(filepath);
-    char filename[MAX_FILENAME_LEN] = {'\0'}; /* will be used to store output filname via GetFileName() */
     enum get_line_status line_status = 0;
 
     FILE *pfile = NULL;
@@ -154,31 +154,126 @@ static int ProcessFile(const char *filepath)
     {
         ParserResetLineCount(parser);
         rewind(pfile);
-        
-        /*
-        while
+        #ifndef NDEBUG
+        puts("Start second pass input file read.");
+        #endif
+        do
         {
-            second pass
-        }
+            char line_buf[MAX_LINE_LEN] = {'\0'};
+            dvec_t *args_arr = NULL;
 
-            */
+            if (LINE_TOO_LONG == line_status)
+            {
+                printf("WARNING: line %lu statement %s must be no longer than %d characters\n", 
+                ParserCurLineNum(parser), line_buf, MAX_LINE_LEN - 1);
+                line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN - 1, SPACE_CHARS, ' ');
+
+                ParserFailParser(parser);
+
+                continue;
+            }    
+
+            line_status = FileGetLine(pfile, line_buf, MAX_LINE_LEN - 1, SPACE_CHARS, ' ');
+            #ifndef NDEBUG
+            puts(line_buf);
+            #endif
+            args_arr = FileLineToArgs(line_buf);
+            if (NULL == args_arr)
+            {
+                ParserDestroy(parser, TRUE); parser = NULL;
+                ram = NULL;
+                sym_tab = NULL;
+                fclose(pfile); pfile = NULL;
+                fprintf(stderr, 
+                "MEMORY ERROR: Couldn't allocate memory, while running line %d in file %s\n", 
+                __LINE__, __FILE__);
+
+                return MEM_ERR;
+            }
+
+            if (MEM_ERR == ParserSecondPass(parser, args_arr))
+            {
+                ParserDestroy(parser, TRUE); parser = NULL;
+                ram = NULL;
+                sym_tab = NULL;
+                fclose(pfile); pfile = NULL;
+                fprintf(stderr, 
+                "MEMORY ERROR: Couldn't allocate memory, while running line %d in file %s\n", 
+                __LINE__, __FILE__);
+
+                return MEM_ERR;
+            }
+
+            FileFreeArgs(args_arr);       
+        }
+        while (END_OF_FILE != line_status);
     }
     fclose(pfile);
     pfile = NULL;
 
     if (!ParserIsSyntaxCorrupt(parser))
     {
-        /*             create output from ram, from sym_tab*/
+        /* create output from ram, from sym_tab*/
+        char filename_extensionless[MAX_FILENAME_LEN] = {'\0'}; /* will be used to store output filname via GetFileName() */
+        CreateObjFile(GetExtensionlessFileName(filepath, filename_extensionless), parser, ram, sym_tab);
     }
 
     ParserDestroy(parser, TRUE);
     parser = NULL;
-    RAMDestroy(ram);
     ram = NULL;
-    SymTabDestroy(sym_tab);
+
+    return OK;
 }
 
+/*
 
+*/
+static int CreateObjFile(const char *extensionless_filename, 
+    const parser_t *parser, const ram_t *ram, const sym_tab_t *sym_tab)
+{
+    size_t i = 0;
+    size_t ram_size = -1;
+    char filename[MAX_FILENAME_LEN] = {'\0'};
+    static const char *ob_ext = ".ob";
+    FILE *p_ob_file = NULL;
+
+    assert(extensionless_filename); 
+    assert(parser); 
+    assert(ram); 
+    assert(sym_tab);
+    assert(!ParserIsSyntaxCorrupt(parser));
+    assert(ParserGetIC(parser) == RAMSize(ram));
+
+    ram_size = RAMSize(ram);
+    strcpy(filename, extensionless_filename);
+    strcat(filename, ob_ext);
+
+    p_ob_file = fopen(filename, "w");
+    if (!p_ob_file)
+    {
+        fprintf(p_ob_file, "SYSTEM ERROR: could not create the file ");
+        puts(filename);
+        
+        return MEM_ERR;
+    }
+   
+
+    for (i = 0; i < ram_size; ++i)
+    {
+        word_t *w = RAMGetIthWord(ram, i);
+        byte *b = (byte *)w;
+        int j = 0;
+        for (; j < sizeof(*w); ++j)
+        {
+            fprintf(p_ob_file ,"%02X ", *(j + b));
+        }
+        fprintf(p_ob_file, "\n");
+    }
+
+    fclose(p_ob_file);
+    p_ob_file = NULL;
+    return OK;
+}
 
 static int CheckUsage(int num_filepaths, const char *filepaths[])
 {
@@ -210,7 +305,7 @@ static int CheckFileName(const char *filename)
 
 
 /* put filename with no extension in filename_buf*/
-static void GetFileName(const char *filepath, char *filename_buf)
+static char *GetExtensionlessFileName(const char *filepath, char *filename_buf)
 {
     size_t new_len = -1;
     const size_t param_ext_len = strlen(param_extension);
@@ -222,5 +317,5 @@ static void GetFileName(const char *filepath, char *filename_buf)
     strncpy(filename_buf, filepath, new_len);
     filename_buf[new_len - 1] = '\0';
     
-    return;
+    return filename_buf;
 }

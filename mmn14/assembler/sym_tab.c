@@ -161,6 +161,15 @@ int SymTabSymbolAddReferingInstr(sym_tab_t *sym_tab, symbol_t *symbol, size_t in
     return DVECPushBack(symbol->arr_instr_referencing, &instr_addr);
 }
 
+size_t SymTabDataSymbolRelativeAddress(const sym_tab_t *sym_tab, const symbol_t *symbol)
+{
+    assert(sym_tab);
+    assert(symbol);
+    assert(symbol->is_data);
+
+    return symbol->dc_declared;
+}
+
 symbol_t *SymTabGetSymbol(sym_tab_t *sym_tab, const char *label)
 {
     it_t table_begun_iter = NULL;
@@ -342,6 +351,7 @@ int SymTabSymbolSetCode(sym_tab_t *sym_tab, symbol_t *symbol, size_t instruction
     assert(!symbol->is_code);
 
     symbol->is_code = TRUE;
+    symbol->ic_declared = instruction_index;
 
     return OK;
 }

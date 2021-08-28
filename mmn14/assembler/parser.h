@@ -5,16 +5,24 @@
 
 #define COMMENT_CHAR ';'
 
-enum statement_type {R_3_ARG, R_2_ARG, J_0_ARG, J_1_ARG, J_1_LABEL, I_COND, I_ARITH_LOG_MEM, DIR_DEC, DIR_ASCII, DIR_QUALIF, LABEL, COMMENT, BLANK, ERROR};
-/*
-DIR_DEC, DIR_ASCII, DIR_QUALIF:
-add as return values to WhatStatement
-Add as cases to Validate
-add Validators
-*/
+enum statement_type {
+R_3_ARG, /*R-type instruction with 3 args: add, sub, or, nor, and  */
+R_2_ARG, /*R-type instruction with 2 args: move, mvhi, mvlo */
+J_0_ARG, /*J-type instruction with 0 args: stop */
+J_1_ARG,/*J-type instruction with 1 args (label or register): jump */
+J_1_LABEL,/*J-type instruction with 1 args (label): la, call */
+I_COND,/* I-type conditioned instructions: beq, bne, blt, bgt */
+I_ARITH_LOG_MEM,/* I-type other instructions: addi, subi, ori, nori, andi, lb, sb, lw, sb, lh, sh*/
+DIR_DEC, /* Directives: .dh, .db, .dw */
+DIR_ASCII,/* .asciiz */
+DIR_QUALIF,/* .entry, .extern */
+LABEL,/* My_Label: [...] */
+COMMENT,/* ;[...]*/
+BLANK,/* space characters only */
+ERROR/* illegal statement */
+};
 
 enum {OK = 0, SYNT_ERR, MEM_ERR};
-
 
 typedef struct parser parser_t;
 

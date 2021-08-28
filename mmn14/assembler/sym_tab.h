@@ -31,17 +31,14 @@ int SymTabSymbolAddReferingInstr(sym_tab_t *sym_tab, symbol_t *symbol, size_t in
 
 int SymTabSymbolAddDataToDataVector(sym_tab_t *sym_tab, symbol_t *symbol, enum data_type data_type, const void *data);
 
+size_t SymTabDataSymbolRelativeAddress(const sym_tab_t *sym_tab, const symbol_t *symbol);
+
 
 symbol_t *SymTabAddSymbol(sym_tab_t *sym_tab, const char label[]);
 /*
 void SymTabMemCpy(sym_tab_t *sym_tab, symbol_t *symbol, void *to);
 */
 
-/*
-return status 
-0 - success;
-int SymTabSetEntryRelativeAddress(sym_tab_t *sym_tab, symbol_t *symbol, void *zeroth_address, void *to);
-*/
 
 
 void SymTabDestroy(sym_tab_t *sym_tab);

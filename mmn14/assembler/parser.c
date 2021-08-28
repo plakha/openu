@@ -174,6 +174,8 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
             printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
             parser->source_file_name, parser->cur_line_num, label_trimmed);
 
+            ParserFailParser(parser);
+
             return SYNT_ERR;
         }
 
@@ -237,32 +239,32 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
                     if (OK != SymTabSymbolAddDataToDataVector(parser->sym_tab, 
                                 new_symbol, data_type, str_from_asciz + i))
                     {
-                        fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
+                        fprintf(stderr, 
+                        "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
                         __LINE__, __FILE__);
 
                         return MEM_ERR;
                     }
                 }
-
             }
             else
             {
                 assert(FALSE);
             }
         }
+
         /* Case like Label: add $1,$2,$3 */
         else if (IsInstruction(labeled_statement_type))
         {
             symbol_t *new_symbol = SymTabAddSymbol(parser->sym_tab, label_trimmed);
             
             assert(strlen(label_trimmed) > 0);
-            assert(parser->ic > 0);
-            /* was promoted on validation */
+            assert(parser->ic > 0); /* was promoted on validation */
             
             SymTabSymbolSetCode(parser->sym_tab, new_symbol, parser->ic - 1);         
         }
 
-        /*Case like Label0: .extern Label1 */
+        /*Case like Label_Ignored: .extern Label1 */
         else if (DIR_QUALIF == labeled_statement_type && 0 == strcmp(extern_dir_str, arg1))
         {
             const char *label_qualified = DVECGetItemAddress(args, 2);
@@ -272,22 +274,23 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
             if (SymTabHasSymbol(parser->sym_tab, label_qualified))
             {
                 symbol_t *existing_symbol = SymTabGetSymbol(parser->sym_tab, label_qualified);
-                /* we will ignore setting Label as extern for the second time */
                 if (!SymTabSymbolIsExtern(parser->sym_tab, existing_symbol))
                 {
                     parser->is_file_syntax_corrupt = TRUE;
 
-                    printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
+                    printf("ERROR in source file %s, line %ld: attempted redefine of existing symbol %s as extern\n", 
                     parser->source_file_name, parser->cur_line_num, label_qualified);
 
                     return SYNT_ERR;
                 }
-
+                else{
+                    /* ignore setting a label extern for a second time */
+                }
             }
             else 
             {
                 /* add symbol, set extern */
-                symbol_t *new_symbol = SymTabAddSymbol(parser->sym_tab, label_trimmed);
+                symbol_t *new_symbol = SymTabAddSymbol(parser->sym_tab, label_qualified);
                 if (!new_symbol)
                 {
                     fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
@@ -296,7 +299,7 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
                     return MEM_ERR;
                 }
 
-                SymTabSymbolSetEntry(parser->sym_tab, new_symbol);
+                SymTabSymbolSetExtern(parser->sym_tab, new_symbol);
             }
 
         }
@@ -307,13 +310,11 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
    {
         assert(!IsStringLabel(arg0, TRUE));
         assert(IsStringLabel(arg1, FALSE));
-        /* label is without the terminating ':' */
-        assert(':' != arg0[strlen(arg0) - 1]);
-
+        /* label should be without the terminating ':' */
+        assert(':' != arg1[strlen(arg1) - 1]);
 
         if (SymTabHasSymbol(parser->sym_tab, arg1))
-        {
-            
+        {   
             symbol_t *existing_symbol = SymTabGetSymbol(parser->sym_tab, arg1);
             if (!SymTabSymbolIsExtern(parser->sym_tab, existing_symbol))
             {
@@ -321,14 +322,27 @@ static int FirstPassProcessLineArgs(parser_t *parser, dvec_t *args)
 
                 printf("ERROR in source file %s, line %ld: attempted redefine of symbol %s\n", 
                 parser->source_file_name, parser->cur_line_num, arg1);
+
+                return SYNT_ERR;
             }
         }
         else 
         {
             /* add symbol, set extern */
-        }
+            symbol_t *new_symbol = SymTabAddSymbol(parser->sym_tab, arg1);
+            if (!new_symbol)
+            {
+                fprintf(stderr, "MEMORY ERROR: could not allocate memory while running line %d in %s/n", 
+                __LINE__, __FILE__);
 
+                return MEM_ERR;
+            }
+
+            SymTabSymbolSetExtern(parser->sym_tab, new_symbol);
+        }
    }
+
+   return OK;
 }
 
 /* return MEM_ERR, SNT_ERR, OK */
@@ -344,7 +358,6 @@ int ParserSecondPass(parser_t *parser, dvec_t *args)
     new_instruction = InstructionBuilderCreateInstruction()
     }
     */
-
     enum statement_type statement_type = 0;
     int is_under_labe = FALSE;
     const char *arg0 = NULL;
@@ -352,7 +365,6 @@ int ParserSecondPass(parser_t *parser, dvec_t *args)
     size_t first_element_index = -1;
     size_t args_size = -1;
 
-    
     assert(parser);
     assert(args);
 
@@ -378,28 +390,45 @@ int ParserSecondPass(parser_t *parser, dvec_t *args)
         {
             symbol_t *symbol = SymTabGetSymbol(parser->sym_tab, arg1);
 
+            if (SymTabSymbolIsExtern(parser->sym_tab, symbol))
+            {
+                printf("ERROR in source file %s, line %lu: attemted qualifying a an extern label %s as entry\n", 
+                parser->source_file_name, parser->cur_line_num, arg1);
+
+                ParserFailParser(parser);
+
+                return SYNT_ERR;
+            }
+            else
+            {
+                SymTabSymbolSetEntry(parser->sym_tab, symbol);
+            }
+
         }
         else
         {
+            printf("ERROR in source file %s, line %lu: attemted qualifying a non-existing label %s as entry\n", 
+            parser->source_file_name, parser->cur_line_num, arg1);
 
+            ParserFailParser(parser);
+
+            return SYNT_ERR;
         }
-
-
     }
     else if (IsInstruction(statement_type))
     {
         #ifndef NDEBUG
         static const char *comma = ",";
+        const char *arg2 = args_size > 2 ? DVECGetItemAddress(args, first_element_index + 2) : NULL; /* comma */
+        const char *arg4 = args_size > 4 ? DVECGetItemAddress(args, first_element_index + 4) : NULL; /* comma */
         #endif
         const char *arg1 = args_size > 1 ? DVECGetItemAddress(args, first_element_index + 1) : NULL;
-        const char *arg2 = args_size > 2 ? DVECGetItemAddress(args, first_element_index + 2) : NULL; /* comma */
         const char *arg3 = args_size > 3 ? DVECGetItemAddress(args, first_element_index + 3) : NULL;
-        const char *arg4 = args_size > 4 ? DVECGetItemAddress(args, first_element_index + 4) : NULL; /* comma */
         const char *arg5 = args_size > 5 ? DVECGetItemAddress(args, first_element_index + 5) : NULL;
         word_t instruction_bit_arr = IBBadInstruction();
 
         assert(IBIsBadInstruction(instruction_bit_arr));
-        assert(6 <= args_size); /* I count comma as an arg */
+        assert(6 >= args_size); /* I count comma as an arg */
 
         switch (statement_type)
         {
@@ -433,15 +462,45 @@ int ParserSecondPass(parser_t *parser, dvec_t *args)
 
             instruction_bit_arr = IBCreateInstructionJ0Args(arg0);
             break;
-        case J_1_ARG:/* like jmp reg_num */
+        case J_1_ARG:/*  jmp reg_num/label */
             assert(2 == args_size);
-            assert(IsStringRegistry(arg1));
+            puts(arg1);
+            assert(IsStringRegistry(arg1) || IsStringLabel(arg1, FALSE));
             assert(!arg2 && !arg3 && !arg4 && !arg5);
 
-            instruction_bit_arr = IBCreateInstructionJ1Args(arg0, StringToRegistry(arg1));            
-            break;
-        case J_1_LABEL: /* like jmp my_label */
+            if (IsStringRegistry(arg1))
+            {
+                instruction_bit_arr = IBCreateInstructionJ1Args(arg0, TRUE, StringToRegistry(arg1));            
+            }
+            else if (IsStringLabel(arg1, FALSE))
+            {
+                if (SymTabHasSymbol(parser->sym_tab, arg1))
+                {
+                    size_t refered_addr = 0;
+                    symbol_t *symbol = SymTabGetSymbol(parser->sym_tab, arg1);
+                    if (SymTabSymbolIsCode(parser->sym_tab, symbol))
+                    {
+                        refered_addr = SymTabGetICDeclared(parser->sym_tab, symbol) * sizeof(word_t) + RAM_START_ADDRESS;
+                        /*The index of instruction (instruction size is word) + the code segment location in RAM ()*/
+                    }
+                    else if (SymTabSymbolIsData(parser->sym_tab, symbol))
+                    {
+                        assert(RAMSize(parser->ram) <= parser->ic);
 
+                        refered_addr = RAM_START_ADDRESS + parser->ic * (sizeof(word_t)) 
+                        + SymTabDataSymbolRelativeAddress(parser->sym_tab, symbol);
+                    }
+                    else if (SymTabHasSymbol(parser->sym_tab, arg1))
+                    {
+                        /* for extern label, use address 0, add refernce to symbol table */
+                        SymTabSymbolAddReferingInstr(parser->sym_tab, symbol, 4 * parser->sec_pass_instr_num + RAM_START_ADDRESS);
+                    }
+
+                    instruction_bit_arr = IBCreateInstructionJ1Args(arg0, FALSE, refered_addr);
+                }
+            }
+            break;
+        case J_1_LABEL: /* like call my_label */
             assert(2 == args_size);
             assert(IsStringLabel(arg1, FALSE));
             assert(!arg2 && !arg3 && !arg4 && !arg5);
@@ -450,21 +509,18 @@ int ParserSecondPass(parser_t *parser, dvec_t *args)
             {
                 size_t refered_addr = 0;
                 symbol_t *symbol = SymTabGetSymbol(parser->sym_tab, arg1);
-                if (!SymTabSymbolIsExtern(parser->sym_tab, symbol))
+                if (SymTabSymbolIsCode(parser->sym_tab, symbol))
                 {
-                    if (!SymTabSymbolIsCode(parser->sym_tab, symbol))
-                    {
-                        printf("ERROR in source file %s, line %ld: attemted jump to a non-code label %s\n", 
-                        parser->source_file_name, parser->cur_line_num, arg1);
-
-                        ParserFailParser(parser);
-
-                        return SYNT_ERR;
-                    }
                     refered_addr = SymTabGetICDeclared(parser->sym_tab, symbol) * sizeof(word_t) + RAM_START_ADDRESS;
-                    /*The index of instruction (instruction size is word) + the code segment location in RAM ()*/
                 }
-                else
+                else if (SymTabSymbolIsData(parser->sym_tab, symbol))
+                {
+                    assert(RAMSize(parser->ram) < parser->ic);
+
+                    refered_addr = RAM_START_ADDRESS + parser->ic * (sizeof(word_t)) 
+                    + SymTabDataSymbolRelativeAddress(parser->sym_tab, symbol);
+                }
+                else if (SymTabHasSymbol(parser->sym_tab, arg1))
                 {
                     SymTabSymbolAddReferingInstr(parser->sym_tab, symbol, 4 * parser->sec_pass_instr_num + RAM_START_ADDRESS);
                 }
@@ -475,6 +531,8 @@ int ParserSecondPass(parser_t *parser, dvec_t *args)
             {
                 printf("ERROR in source file %s, line %ld: reference of an undefined, non-extern label %s\n", 
                 parser->source_file_name, parser->cur_line_num, arg1);
+
+                ParserFailParser(parser);
 
                 return SYNT_ERR;
             }
@@ -518,7 +576,7 @@ int ParserSecondPass(parser_t *parser, dvec_t *args)
                     SymTabSymbolAddReferingInstr(parser->sym_tab, symbol, 4 * parser->sec_pass_instr_num + RAM_START_ADDRESS);
                 }
 
-                instruction_bit_arr = IBCreateInstructionICond(arg5, StringToRegistry(arg1), StringToRegistry(arg3), jump_distance);
+                instruction_bit_arr = IBCreateInstructionICond(arg0, StringToRegistry(arg1), StringToRegistry(arg3), jump_distance);
             }
             else
             {
@@ -561,7 +619,9 @@ int ParserSecondPass(parser_t *parser, dvec_t *args)
     }
     
     ++(parser->cur_line_num);
-    assert(parser->ic > parser->sec_pass_instr_num);
+    assert(parser->ic >= parser->sec_pass_instr_num);
+
+    return OK;
 }
 
 int ParserFirstPass(parser_t *parser, dvec_t *args)
@@ -571,7 +631,7 @@ int ParserFirstPass(parser_t *parser, dvec_t *args)
     #ifndef NDEBUG
     {
         int i = 0;
-        printf("line num: %lu , ic=%lu, syntax corrupt? %d", parser->cur_line_num, parser->ic, parser->is_file_syntax_corrupt);
+        printf("Befinning 1st pass line num: %lu , ic=%lu, syntax corrupt by now? %d", parser->cur_line_num, parser->ic, parser->is_file_syntax_corrupt);
         for (;i < DVECSize(args); ++i)
         {
            printf("|%s| ", (const char *)DVECGetItemAddress(args, i));
@@ -595,6 +655,8 @@ int ParserFirstPass(parser_t *parser, dvec_t *args)
     }
 
     ++(parser->cur_line_num);
+
+    return OK;
 }
 
 int ParserIsSyntaxCorrupt(const parser_t * parser)
@@ -662,7 +724,7 @@ static int StringToRegistry(const char *str)
     const size_t str_len = strlen(str);
     int reg = -1;
     static const int max_reg = 31;
-    #ifndef DNDEBUG
+    #ifndef NDEBUG
     static const int min_reg = 0;
     #endif
 
@@ -699,9 +761,7 @@ static int IsStringNum(const char *str)
 
     assert(str);
 
-    if ((!isdigit(*runner)) 
-    && ('+' != *runner) 
-    && ('-' != *runner))
+    if ((!isdigit(*runner)) && ('+' != *runner) && ('-' != *runner))
     {
         return FALSE;
     }

@@ -148,7 +148,7 @@ word_t IBCreateInstructionR2Args(const char *inst, int rs, int rd)
     {
         func = 3;
     }
-     else
+    else
     {
         assert(0);
         return BAD_INSTRUCTION;
@@ -195,6 +195,8 @@ word_t IBCreateInstructionICond(const char *inst, int rs, int rt, long jmp_dista
     }
     else
     {
+        puts(inst);
+        printf("%d\n", strcmp(inst, "bgt"));
         assert(0);
         return BAD_INSTRUCTION;
     }
@@ -242,7 +244,7 @@ word_t IBCreateInstructionIArithLogMem(const char *inst, int rs, long immed, int
     {
         opcode = 13;
     }
-    if (0 == strcmp(inst, nori))
+    else if (0 == strcmp(inst, nori))
     {
         opcode = 14;
     }
@@ -258,7 +260,7 @@ word_t IBCreateInstructionIArithLogMem(const char *inst, int rs, long immed, int
     {
         opcode = 21;
     }
-    if (0 == strcmp(inst, sw))
+    else if (0 == strcmp(inst, sw))
     {
         opcode = 22;
     }
@@ -314,12 +316,9 @@ word_t IBCreateInstructionJ0Args(const char *inst)
     
 }
 
-word_t IBCreateInstructionJ1Args(const char *inst, int reg)
+word_t IBCreateInstructionJ1Args(const char *inst, int is_reg, size_t address_or_reg)
 {
     static const char *jmp = "jmp";
-    static const char *la = "la";
-    static const char *call = "call";
-    
     int opcode = -1;
   
     j_instr_t new_instruction = {0};
@@ -328,22 +327,14 @@ word_t IBCreateInstructionJ1Args(const char *inst, int reg)
     {
         opcode = 30;
     }
-    if (0 == strcmp(inst, la))
-    {
-        opcode = 31;
-    }
-    if (0 == strcmp(inst, call))
-    {
-        opcode = 32;
-    }
     else
     {
         assert(0);
         return BAD_INSTRUCTION;
     }
 
-    new_instruction.reg = 1;
-    new_instruction.address = reg;
+    new_instruction.reg = is_reg ? 1 : 0;
+    new_instruction.address = address_or_reg;
     new_instruction.opcode = opcode;
 
     return *(word_t *)&new_instruction;
@@ -352,23 +343,19 @@ word_t IBCreateInstructionJ1Args(const char *inst, int reg)
 
 word_t IBCreateInstructionJ1Label(const char *inst, size_t label_address)
 {
-    static const char *jmp = "jmp";
     static const char *la = "la";
     static const char *call = "call";
+    static const int reg = 0;
     
     int opcode = -1;
   
     j_instr_t new_instruction = {0};
 
-    if (0 == strcmp(inst, jmp))
-    {
-        opcode = 30;
-    }
     if (0 == strcmp(inst, la))
     {
         opcode = 31;
     }
-    if (0 == strcmp(inst, call))
+    else if (0 == strcmp(inst, call))
     {
         opcode = 32;
     }
@@ -379,12 +366,11 @@ word_t IBCreateInstructionJ1Label(const char *inst, size_t label_address)
     }
 
    
-    new_instruction.reg = 0;
+    new_instruction.reg = reg;
     new_instruction.address = label_address ;
     new_instruction.opcode = opcode;
 
-    return *(word_t *)&new_instruction;
-    
+    return *(word_t *)&new_instruction; 
 }
 
 
