@@ -68,11 +68,6 @@ enum get_line_status FileGetLine(FILE *file, char *buf, size_t lim, const char i
     return status;
 }
 
-
-/* TODO if see ", take all the rest to one arg
-
-TODO check with single arg
-     */
 dvec_t *FileLineToArgs(const char line[])
 {
     static const size_t N_ARGS_EXPECTED = 6;
@@ -127,4 +122,5 @@ void FileFreeArgs(dvec_t *dvec)
     assert(dvec);
 
     DVECDestroy(dvec);
+    dvec = NULL;
 }

@@ -23,6 +23,12 @@ static int CheckFileName(const char *filename);
 static char *GetExtensionlessFileName(const char *filepath, char *filename_buf);
 static int CreateObjFile(const char *extensionless_filename, const parser_t *parser, const ram_t *ram, const sym_tab_t *sym_tab);
 
+static int CreateEntFile(const char *extensionless_filename, 
+    const parser_t *parser, const ram_t *ram, const sym_tab_t *sym_tab);
+    
+static int PrintSymTabData(FILE *p_obj_file, const parser_t *parser, const ram_t *ram, const sym_tab_t *sym_tab);
+
+
 int main(int argc, char const *argv[])
 {
     const char  **filepaths = argv;
@@ -72,8 +78,16 @@ static int ProcessFile(const char *filepath)
     ram = RAMCreate();
     if(!sym_tab || !ram)
     {
-        if (ram) {RAMDestroy(ram); ram = NULL;}
-        if (sym_tab) {SymTabDestroy(sym_tab); sym_tab = NULL;}
+        if (ram) 
+        {
+            RAMDestroy(ram); 
+            ram = NULL;
+        }
+        if (sym_tab) 
+        {
+            SymTabDestroy(sym_tab); 
+            sym_tab = NULL;
+        }
         fclose(pfile); pfile = NULL;
         fprintf(stderr, 
         "MEMORY ERROR: Couldn't allocate memory, while running line %d in file %s\n", 
@@ -85,9 +99,12 @@ static int ProcessFile(const char *filepath)
     parser = ParserCreate(filepath, ram, sym_tab);
     if(!parser)
     {
-        RAMDestroy(ram); ram = NULL;
-        SymTabCreate(sym_tab); sym_tab = NULL;
-        fclose(pfile); pfile = NULL;
+        RAMDestroy(ram); 
+        ram = NULL;
+        SymTabCreate(sym_tab); 
+        sym_tab = NULL;
+        fclose(pfile); 
+        pfile = NULL;
         fprintf(stderr, 
         "MEMORY ERROR: Couldn't allocate memory, while running line %d in file %s\n", 
         __LINE__, __FILE__);
@@ -142,7 +159,8 @@ static int ProcessFile(const char *filepath)
             return MEM_ERR;
         }
 
-        FileFreeArgs(args_arr);       
+        FileFreeArgs(args_arr); 
+        args_arr = NULL;      
     }
     while (END_OF_FILE != line_status);
 
@@ -204,7 +222,8 @@ static int ProcessFile(const char *filepath)
                 return MEM_ERR;
             }
 
-            FileFreeArgs(args_arr);       
+            FileFreeArgs(args_arr);  
+            args_arr = NULL;     
         }
         while (END_OF_FILE != line_status);
     }
@@ -215,7 +234,11 @@ static int ProcessFile(const char *filepath)
     {
         /* create output from ram, from sym_tab*/
         char filename_extensionless[MAX_FILENAME_LEN] = {'\0'}; /* will be used to store output filname via GetFileName() */
-        CreateObjFile(GetExtensionlessFileName(filepath, filename_extensionless), parser, ram, sym_tab);
+        GetExtensionlessFileName(filepath, filename_extensionless);
+        CreateObjFile(filename_extensionless, parser, ram, sym_tab);
+        CreateEntFile(filename_extensionless, parser, ram, sym_tab);
+        /* CreateExtFile(filename_extensionless, parser, ram, sym_tab);*/
+
     }
 
     ParserDestroy(parser, TRUE);
@@ -236,6 +259,7 @@ static int CreateObjFile(const char *extensionless_filename,
     char filename[MAX_FILENAME_LEN] = {'\0'};
     static const char *ob_ext = ".ob";
     FILE *p_ob_file = NULL;
+    unsigned long byte_count = RAM_START_ADDRESS;
 
     assert(extensionless_filename); 
     assert(parser); 
@@ -251,23 +275,26 @@ static int CreateObjFile(const char *extensionless_filename,
     p_ob_file = fopen(filename, "w");
     if (!p_ob_file)
     {
-        fprintf(p_ob_file, "SYSTEM ERROR: could not create the file ");
+        fprintf(stderr, "SYSTEM ERROR: could not create the file ");
         puts(filename);
         
         return MEM_ERR;
     }
    
-
+    fprintf(p_ob_file, "     %lu %lu\n", RAMSize(ram) * sizeof(word_t), SymTabGetDataCount(sym_tab));
     for (i = 0; i < ram_size; ++i)
     {
         word_t *w = RAMGetIthWord(ram, i);
         byte *b = (byte *)w;
         int j = 0;
+        fprintf(p_ob_file ,"%04lu", byte_count);
         for (; j < sizeof(*w); ++j)
         {
-            fprintf(p_ob_file ,"%02X ", *(j + b));
+            fprintf(p_ob_file ," %02X", *(j + b));
         }
+        byte_count += sizeof(word_t);
         fprintf(p_ob_file, "\n");
+        (void)&PrintSymTabData; /* PrintSymTabData() not finished */
     }
 
     fclose(p_ob_file);
@@ -287,6 +314,78 @@ static int CheckUsage(int num_filepaths, const char *filepaths[])
     return status;
 }
 
+/* typedef int (*act_f)(void *data, const void *params); */
+static int UtilPrintEntrySymbols(void *data, const void *params)
+{
+    symbol_t *symbol = (symbol_t *)data;
+    /* params is array of 3 pointers to void */
+    void **param_arr = (void **)params;
+    FILE *p_ent_file = (FILE *)(param_arr[0]);
+    unsigned long *address = (unsigned long *)(param_arr[1]);
+    sym_tab_t *sym_tab = (sym_tab_t *)(param_arr[2]);
+
+    assert(p_ent_file);
+
+    /*if Symbol is entry Print label,
+        if Data print dc + given addressd
+        if Code print saved_ic  */
+
+    if (SymTabSymbolIsEntry(sym_tab, symbol))
+    {
+        fprintf(p_ent_file,"%s ", SymTabSymbolGetLabel(sym_tab, symbol));
+        if (SymTabSymbolIsData(sym_tab, symbol))
+        {
+            unsigned long dc = *address + SymTabSymbolGetDC(sym_tab, symbol);
+            fprintf(p_ent_file, "%lu", dc);
+
+        }
+        else if (SymTabSymbolIsCode(sym_tab, symbol))
+        {
+            unsigned long instr_addr = RAM_START_ADDRESS 
+                + sizeof(word_t) * SymTabGetICDeclared(sym_tab, symbol);
+            fprintf(p_ent_file, "%lu", instr_addr);
+
+        }
+        fprintf(p_ent_file,"\n");
+    }
+
+    return OK;
+}
+
+static int CreateEntFile(const char *extensionless_filename, 
+    const parser_t *parser, const ram_t *ram, const sym_tab_t *sym_tab)
+{
+    int ret = OK;
+    char filename[MAX_FILENAME_LEN] = {'\0'};
+    static const char *ent_extension = ".ent";
+    void *params[3] = {NULL};
+    unsigned long start_address = RAM_START_ADDRESS + RAMSize(ram) * sizeof(word_t); 
+    FILE *p_ent_file = NULL;
+
+    strcpy(filename, extensionless_filename);
+    strcat(filename, ent_extension);
+
+    p_ent_file = fopen(filename, "w");
+    if (!p_ent_file)
+    {
+        fprintf(stderr, "SYSTEM ERROR: could not create the file ");
+        puts(filename);
+
+        return MEM_ERR;
+    }
+
+    params[0] = (void *)p_ent_file;
+    params[1] = (void *)&start_address;
+    params[2] = (void *)sym_tab;
+
+    ret = SymTabForEachSymbol((sym_tab_t *)sym_tab, &UtilPrintEntrySymbols, params);
+
+    fclose(p_ent_file);
+    p_ent_file = NULL;
+
+    return ret;
+}
+
 /* ends with .as; print error as needed*/
 static int CheckFileName(const char *filename)
 {
@@ -302,7 +401,42 @@ static int CheckFileName(const char *filename)
     return OK;
 }
 
+/* typedef int (*act_f)(void *data, const void *params); */
+/* unfinished */
+static int UtilPrintSymData(void *data, const void *params)
+{
+    symbol_t *symbol = (symbol_t *)data;
+    /* params is array of 3 pointers to void */
+    FILE *p_ent_file = (FILE *)*(void **)params;
+    unsigned long *address = (unsigned long *)(((void **)params)[1]);
+    sym_tab_t *sym_tab = (sym_tab_t *)*((void **)params + 2);
 
+    if (SymTabSymbolIsData(sym_tab, symbol))
+    {
+        /* GetDataVector, DataSize(Type), print byte-by-byte to the file */
+    }
+    
+
+    (void)sym_tab;
+    (void)address;
+    (void)symbol;
+    (void)p_ent_file;
+
+    return OK;
+}
+
+/* unfinished */
+static int PrintSymTabData(FILE *p_obj_file, const parser_t *parser, const ram_t *ram, const sym_tab_t *sym_tab)
+{
+    void *params[3] = {NULL};
+    unsigned long start_address = RAM_START_ADDRESS + RAMSize(ram) * sizeof(word_t);
+
+    params[0] = (void *)p_obj_file;
+    params[1] = (void *)&start_address;
+    params[2] = (void *)sym_tab;
+    
+    return SymTabForEachSymbol((sym_tab_t *)sym_tab, &UtilPrintSymData, params);
+}
 
 /* put filename with no extension in filename_buf*/
 static char *GetExtensionlessFileName(const char *filepath, char *filename_buf)

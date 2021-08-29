@@ -88,6 +88,7 @@ parser_t *ParserCreate(const char *source_file_name, ram_t *ram, sym_tab_t *sym_
     new_parser->cur_line_num = 1;
     new_parser->ram = ram;
     new_parser->sym_tab = sym_tab;
+    new_parser->is_file_syntax_corrupt = FALSE;
 
     return new_parser;
 }
@@ -458,7 +459,6 @@ int ParserSecondPass(parser_t *parser, dvec_t *args)
             break;
         case J_1_ARG:/*  jmp reg_num/label */
             assert(2 == args_size);
-            puts(arg1);
             assert(IsStringRegistry(arg1) || IsStringLabel(arg1, FALSE));
             assert(!arg2 && !arg3 && !arg4 && !arg5);
 
@@ -482,7 +482,7 @@ int ParserSecondPass(parser_t *parser, dvec_t *args)
                         assert(RAMSize(parser->ram) <= parser->ic);
 
                         refered_addr = RAM_START_ADDRESS + parser->ic * (sizeof(word_t)) 
-                        + SymTabDataSymbolRelativeAddress(parser->sym_tab, symbol);
+                        + SymTabSymbolGetDC(parser->sym_tab, symbol);
                     }
                     else if (SymTabHasSymbol(parser->sym_tab, arg1))
                     {
@@ -512,7 +512,7 @@ int ParserSecondPass(parser_t *parser, dvec_t *args)
                     assert(RAMSize(parser->ram) < parser->ic);
 
                     refered_addr = RAM_START_ADDRESS + parser->ic * (sizeof(word_t)) 
-                    + SymTabDataSymbolRelativeAddress(parser->sym_tab, symbol);
+                    + SymTabSymbolGetDC(parser->sym_tab, symbol);
                 }
                 else if (SymTabHasSymbol(parser->sym_tab, arg1))
                 {
@@ -1473,7 +1473,6 @@ static enum statement_type WhatStatement(const dvec_t *args, int is_under_label)
             ++space_checker;
         }
         #endif
-        puts("HERE!");
 
         return BLANK;
     }

@@ -248,32 +248,3 @@ it_t DLLFind(it_t from, it_t to, cmp_f is_found, const void *key,
 
 	return from;
 }
-
-void DLLSpliceBefore(it_t where, it_t from, it_t to)
-{
-	it_t prev_where = NULL;
-	it_t prev_from = NULL;
-	it_t prev_to = NULL;
-
-	/* TODO assert or if? implications on SrtLMerge */
-	assert(from != to);
-/*	if(from == to)*/
-/*	{*/
-/*	return;*/
-/*	}*/
-
-	assert(NULL != where && NULL != from && NULL != to);
-
-	assert(NULL != where->prev && NULL != from->prev && NULL != to->prev);
-	
-	prev_where = DLLPrev(where);
-	prev_from = DLLPrev(from);
-	prev_to = DLLPrev(to);
-	
-	prev_from->next = to;
-	from->prev = prev_where;
-	prev_where->next = from;
-	prev_to->next = where;
-	where->prev = prev_to;
-	to->prev = prev_from;
-}

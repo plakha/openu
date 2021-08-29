@@ -3,7 +3,6 @@
 #include <string.h> /* strcpy() */
 #include <stdio.h> /* fprintf() */
 
-#include "dll.h"
 #include "dvec.h"
 
 #include "sym_tab.h"
@@ -49,7 +48,7 @@ struct symbol
 };
 
 /************ static function declaration *********/
-static size_t SizeOfDataType(enum data_type data_type);
+static unsigned long SizeOfDataType(enum data_type data_type);
 static int UtilDestroySymbol(void *data,const void *params);
 
 
@@ -103,7 +102,7 @@ const void *void_param)
     return !strcmp(((symbol_t *)compared_symbol)->label, (const char *)given_label);
 }
 
-static size_t SizeOfDataType(enum data_type data_type)
+static unsigned long SizeOfDataType(enum data_type data_type)
 {
     switch (data_type)
     {
@@ -161,14 +160,23 @@ int SymTabSymbolAddReferingInstr(sym_tab_t *sym_tab, symbol_t *symbol, size_t in
     return DVECPushBack(symbol->arr_instr_referencing, &instr_addr);
 }
 
-unsigned long SymTabDataSymbolRelativeAddress(const sym_tab_t *sym_tab, const symbol_t *symbol)
+unsigned long SymTabSymbolGetDC(const sym_tab_t *sym_tab, const symbol_t *symbol)
 {
     assert(sym_tab);
     assert(symbol);
     assert(symbol->is_data);
+    assert(-1 != symbol->dc_declared);
 
     return symbol->dc_declared;
 }
+
+unsigned long SymTabGetDataCount(const sym_tab_t *sym_tab)
+{
+    assert(sym_tab);
+
+    return sym_tab->dc;
+}
+
 
 symbol_t *SymTabGetSymbol(sym_tab_t *sym_tab, const char *label)
 {
@@ -204,7 +212,7 @@ int SymTabSymbolIsData(const sym_tab_t *sym_tab, const symbol_t *symbol)
 
     if ((ret = symbol->is_data))
     {
-        assert(!symbol->is_entry);
+        assert(!symbol->is_extern);
         assert(!symbol->is_code);
         assert(NULL != symbol->data_vector);
     }
@@ -231,26 +239,29 @@ int SymTabSymbolIsCode(const sym_tab_t *sym_tab, const symbol_t *symbol)
 
 int SymTabSymbolIsExtern(const sym_tab_t *sym_tab, const symbol_t *symbol)
 {
-    int ret = FALSE;
-
     assert(sym_tab);
     assert(symbol);
-    
-    if ((ret = symbol->is_extern))
+
+    #ifndef NDEBUG
+    if (symbol->is_extern)
     {
         assert(!symbol->is_entry);
         assert(!symbol->is_code);
         assert(!symbol->is_data);
         assert(NULL == symbol->data_vector);
     }
+    #endif
 
-    return ret;
+    return symbol->is_extern;
 }
 
 int SymTabSymbolIsEntry(const sym_tab_t *sym_tab, const symbol_t *symbol)
 {
-    assert(FALSE);
-    return FALSE;
+    assert(sym_tab);
+    assert(symbol);
+
+
+    return symbol->is_entry;
 }
 
 symbol_t *SymTabAddSymbol(sym_tab_t *sym_tab, const char label[])
@@ -364,6 +375,8 @@ int SymTabSymbolSetEntry(sym_tab_t *sym_tab, symbol_t *symbol)
     assert(!symbol->is_extern);
     assert(NULL == symbol->arr_instr_referencing);
 
+    symbol->is_entry = TRUE;
+
     return OK;
 }
 
@@ -422,7 +435,7 @@ enum data_type SymTabSymbolGetDataType(sym_tab_t *sym_tab, symbol_t *symbol)
 
 
 
-/* typedef int (*act_f)(void *data, const void *params); */
+/* typedef int (*act_f)(void *data, const void *params); the type is imported from "dll.h" */
 static int UtilDestroySymbol(void *data,const void *params)
 {
     symbol_t *symbol = (symbol_t *)data;
@@ -450,6 +463,11 @@ static int UtilDestroySymbol(void *data,const void *params)
     return 0;
 }
 
+int SymTabForEachSymbol(sym_tab_t *sym_tab, act_f func, const void *params)
+{
+    return DLLForEach(DLLBegin(sym_tab->symbol_table),DLLEnd(sym_tab->symbol_table), 
+    func, params);
+}
 
 void SymTabDestroy(sym_tab_t *sym_tab)
 {
@@ -458,45 +476,19 @@ void SymTabDestroy(sym_tab_t *sym_tab)
 
     DLLForEach(DLLBegin(sym_tab->symbol_table),DLLEnd(sym_tab->symbol_table), 
     &UtilDestroySymbol, NULL);
+
+    DLLDestroy(sym_tab->symbol_table);
+    sym_tab->symbol_table = NULL;
     free(sym_tab);
     sym_tab = NULL;    
 }
 
-/*
-
-static void DestroySymbol(sym_tab_t *sym_tab, symbol_t *symbol)
+const char *SymTabSymbolGetLabel(const sym_tab_t *sym_tab, const symbol_t *symbol)
 {
-    it_t table_begun_iter = NULL;
-    it_t table_end_iter = NULL;
-    it_t found_symbol_iter = NULL;
-
     assert(sym_tab);
     assert(symbol);
+    assert(symbol->label);
 
-    table_begun_iter = DLLBegin(sym_tab->symbol_table);
-    table_end_iter = DLLEnd(sym_tab->symbol_table);
-    found_symbol_iter = DLLFind(table_begun_iter, table_end_iter, &CmpSymbolByLabel,symbol->label, NULL);
-    
-    "if symbol has been pushed to table, pop it";
-    if (!DLLIsSameIter(table_end_iter, found_symbol_iter))
-    {
-        DLLErase(found_symbol_iter);
-    }
-
-    if (symbol->data_vector)
-    {
-        DVECDestroy(symbol->data_vector);
-        symbol->data_vector = NULL;
-    }
-
-    if (symbol->ic_referenced)
-    {
-        DVECDestroy(symbol->ic_referenced);
-        symbol->ic_referenced = NULL;
-    }
-
-    free(symbol);
-    symbol = NULL;
+    return symbol->label;
 }
 
-*/

@@ -38,8 +38,8 @@ typedef
 struct 
 {
     
-    unsigned int address : 5;
-    unsigned int reg : 5;
+    unsigned int address : 25;
+    unsigned int reg : 1;
     unsigned int opcode : 6;
     
 }
